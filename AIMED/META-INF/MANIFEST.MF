@@ -1,0 +1,13 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: AIMED
+Bundle-SymbolicName: AIMED
+Bundle-Version: 1.0.0.qualifier
+Export-Package: aimed,
+ messages,
+ ui
+Require-Bundle: org.eclipse.gmt.modisco.java;bundle-version="0.13.0",
+ org.eclipse.gmt.modisco.omg.kdm;bundle-version="0.13.0",
+ org.somox.sourcecodedecorator;bundle-version="1.1.0",
+ org.somox.sourcecodedecorator.edit;bundle-version="1.1.0",
+ org.palladiosimulator.edp2.repository.local;bundle-version="1.0.0"

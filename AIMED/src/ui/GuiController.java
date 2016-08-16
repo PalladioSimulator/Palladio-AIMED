@@ -123,7 +123,7 @@ public class GuiController implements Initializable, Observer {
 		}
 		selectAvailableAdapterBox.setItems(workloadAdapter);
 		//TODO remove this line - Its for default selection of JMeter Adapter.
-		selectAvailableAdapterBox.getSelectionModel().select(2);
+		selectAvailableAdapterBox.getSelectionModel().select(0);
 	}
 	
 	private void onLoadWorkloadAdapterClicked() {

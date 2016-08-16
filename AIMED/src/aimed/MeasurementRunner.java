@@ -99,13 +99,11 @@ public class MeasurementRunner extends Observable implements Runnable {
 	}
 	
 	private void runMeasurements() {
-		setChanged();
 		notifyObservers(new MeasurementStateMessage(MeasurementState.RUNNING, "Starting Measurements..."));
 		LoadConfig loadConfig = generateLoadConfig(measurementDuration);
 		for (String pattern : methodPatterns) {
 			try {				
 				InstrumentationDescription instrumentationDescription = createInstrumentationDescription(pattern);
-				setChanged();
 				notifyObservers(new MeasurementStateMessage(MeasurementState.RUNNING, String.format("Now measuring %s", pattern)));
 				workloadAdapter.startLoad(loadConfig);
 				
@@ -118,14 +116,12 @@ public class MeasurementRunner extends Observable implements Runnable {
 				MeasurementData result = instrumentationClient.getMeasurementData();
 				AimedMainController.getInstance().appendResults(pattern, result);
 				instrumentationClient.uninstrument();
-				setChanged();
 				notifyObservers(new MeasurementStateMessage(MeasurementState.RUNNING,
 						String.format("Finished measurement of %s.", pattern)));
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
 		}
-		setChanged();
 		notifyObservers(new MeasurementStateMessage(MeasurementState.STOPPING, "Finished measurements."));
 	}
 	
@@ -142,7 +138,7 @@ public class MeasurementRunner extends Observable implements Runnable {
 		instEntity.setTraceScope(true); //set this to true for tracing
 		//instEntity.setProbes(new String[] {probes.get(6)}); // NanoResponsetimeProbe
 		instEntity.setScope(customScopes.get(0)); // 0 = MethodScope
-		instEntity.setScopeSettings(methodPattern.split(",[ ]*")); // Pattern for methods, e.g., *doX*
+		instEntity.setScopeSettings(methodPattern.split(",[ ]*")); //Instrument in parallel: Method comma separated.
 		InstrumentationEntityBuilder entBuilder = descBuilder.newMethodScopeEntity(instEntity.getScopeSettings());
 		entBuilder.addProbe(probes.get(6));
 		entBuilder.enableTrace(); // uncomment this for no tracing
@@ -157,8 +153,16 @@ public class MeasurementRunner extends Observable implements Runnable {
 			warmUp();
 			runMeasurements();
 		} else {
-			throw new IllegalStateException("Measurement evnrionement not initialized.");
+			final String message = "Measurement evnironment not initialized.";
+			notifyObservers(new MeasurementStateMessage(MeasurementState.STOPPING, message));
+			throw new IllegalStateException(message);
 		}
+	}
+	
+	@Override
+	public void notifyObservers(Object o) {
+		setChanged();
+		super.notifyObservers(o);
 	}
 
 }

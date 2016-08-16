@@ -9,27 +9,18 @@ import java.util.Map;
 import java.util.Observable;
 import java.util.Observer;
 import java.util.Properties;
-import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 import javax.measure.quantity.Duration;
 import javax.measure.unit.SI;
 
 import org.aim.aiminterface.IAdaptiveInstrumentation;
-import org.aim.aiminterface.description.instrumentation.InstrumentationDescription;
 import org.aim.aiminterface.entities.measurements.AbstractRecord;
 import org.aim.aiminterface.entities.measurements.MeasurementData;
 import org.aim.artifacts.client.JMXAdaptiveInstrumentationClient;
 import org.aim.artifacts.records.ResponseTimeRecord;
-import org.aim.description.builder.InstrumentationDescriptionBuilder;
-import org.aim.description.builder.InstrumentationEntityBuilder;
-import org.aim.ui.entities.RawInstrumentationEntity;
 import org.jscience.physics.amount.Amount;
-import org.lpe.common.config.ConfigParameterDescription;
 import org.lpe.common.config.GlobalConfiguration;
 import org.lpe.common.extension.ExtensionRegistry;
 import org.lpe.common.extension.IExtension;
@@ -37,10 +28,7 @@ import org.lpe.common.extension.IExtensionRegistry;
 import org.lpe.common.util.LpeStringUtils;
 import org.spotter.core.workload.AbstractWorkloadAdapter;
 import org.spotter.core.workload.IWorkloadAdapter;
-import org.spotter.core.workload.LoadConfig;
 import org.spotter.exceptions.WorkloadException;
-import org.spotter.ext.jmeter.JMeterConfigKeys;
-import org.spotter.ext.jmeter.workload.JMeterWorkloadClient;
 
 import messages.ConnectionStateMessage;
 import messages.MeasurementState;
@@ -61,6 +49,8 @@ public class AimedMainController extends Observable implements Observer {
 	private List<IExtension> workloadExtensions;
 	
 	private AbstractWorkloadAdapter selectedWorkloadAdapter;
+	
+	private FileProcessor fileProcessor;
 
 	public static synchronized AimedMainController getInstance() {
 		if (instance == null) {
@@ -71,9 +61,23 @@ public class AimedMainController extends Observable implements Observer {
 
 	private AimedMainController() {
 		loadWorkloadAdapter();
-		/*Amount<Duration> responseTime = Amount.valueOf(1006802401, SI.NANO(SI.SECOND));
-		System.out.println(responseTime);*/
+		fileProcessor = new FileProcessor();
+		fileProcessor.loadRepositoryResource("");
+		fileProcessor.loadKdmResource("");
+		fileProcessor.loadSourceCodeDecoratorResource("");
+		fileProcessor.getSeffMethods();
 	}
+	
+	public void loadKdmResource(String kdmFilePath) {
+		fileProcessor.loadKdmResource(kdmFilePath);
+	}
+	public void loadSourceCodeDecoratorResources(String sourceCodeDecoratorFilePath) {
+		fileProcessor.loadSourceCodeDecoratorResource(sourceCodeDecoratorFilePath);
+	}
+	public void loadRepositoryResources(String repositoryFilePath) {
+		fileProcessor.loadRepositoryResource(repositoryFilePath);
+	}
+	
 	
 	private void loadWorkloadAdapter() {
 		workloadExtensions = new ArrayList<>();
@@ -106,13 +110,11 @@ public class AimedMainController extends Observable implements Observer {
 
 	public boolean connectToMainagent(String host, String port) {
 		if (host.isEmpty() || host == null || port.isEmpty() || port == null) {
-			setChanged();
 			notifyObservers(new ConnectionStateMessage("Host or port is empty."));
 			return false;
 		}
 		try {
 			if (!JMXAdaptiveInstrumentationClient.testConnection(host, port)) {
-				setChanged();
 				notifyObservers(new ConnectionStateMessage(String.format("Can't connect to %s:%s", host, port)));
 				return false;
 			}
@@ -148,7 +150,6 @@ public class AimedMainController extends Observable implements Observer {
 			) {		
 		this.kdmFile = kdmFile;
 		
-		setChanged();
 		notifyObservers(new MeasurementStateMessage(MeasurementState.STARTING, "Warming up..."));
 		MeasurementRunner runner = createRunnableMeasurement(warmupDurationInS, measurementDurationInS, methodPatterns);
 		Future<?> future = Executors.newCachedThreadPool().submit(runner);
@@ -201,7 +202,16 @@ public class AimedMainController extends Observable implements Observer {
 		results.put(pattern, measurementData);
 	}
 
-	private void showResults() {
+	private void createResults() {
+		ResultCalculator resultCalc = new ResultCalculator();
+		resultCalc.setFileProcessor(fileProcessor);
+		//TODO: Remove hard-coded throughput.
+		resultCalc.setCPUThrougput(Amount.valueOf(2.4, SI.GIGA(SI.HERTZ)));
+		for (String method : results.keySet()) {
+			notifyObservers(new MeasurementStateMessage(MeasurementState.CALCULATING, String.format("Now calculating results for %s.", method)));
+			resultCalc.calculateAndWriteResourceDemand(method, results.get(method));
+		}
+		
 		KdmProcessor kdmProcessor = new KdmProcessor();
 		kdmProcessor.parse(kdmFile);
 		String completeMethodName;
@@ -215,7 +225,6 @@ public class AimedMainController extends Observable implements Observer {
 			responseTime = calculateResponseTimeOfMethod(completeMethodName, traceMethods, results.get(pattern));
 			resultLines.add(pattern + ": " + String.valueOf(responseTime) + " ns");
 		}
-		setChanged();
 		notifyObservers(new ResultMessage(resultLines));
 	}
 	
@@ -251,12 +260,17 @@ public class AimedMainController extends Observable implements Observer {
 		if (arg0 instanceof MeasurementRunner) {
 			if (arg1 instanceof MeasurementStateMessage){
 				MeasurementStateMessage msg = (MeasurementStateMessage) arg1;
-				setChanged();
 				notifyObservers(msg);
 				if (msg.getMeasurementState() == MeasurementState.STOPPING) {
-					showResults();
+					createResults();
 				}
 			}
 		}
+	}
+	
+	@Override
+	public void notifyObservers(Object o) {
+		setChanged();
+		super.notifyObservers(o);
 	}
 }
