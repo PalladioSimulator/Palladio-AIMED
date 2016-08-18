@@ -43,14 +43,34 @@
             <content>
               <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
                      <children>
-                        <VBox prefHeight="155.0" prefWidth="350.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
-                           <children>
-                              <Label text="Insert one method pattern per line" />
-                              <TextArea fx:id="methodPatterns" prefHeight="200.0" prefWidth="200.0" promptText="*doGet*" text="*doX*" />
-                           </children>
+                        <VBox prefHeight="155.0" prefWidth="350.0" spacing="10.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
                            <rotationAxis>
                               <Point3D />
                            </rotationAxis>
+                           <children>
+                              <Label text="Select sourcecode decorator resource and load it. After that select seffs for estimating demands." wrapText="true" />
+                              <HBox spacing="10.0">
+                                 <children>
+                                    <TextField fx:id="resourcePathTextField" prefHeight="25.0" prefWidth="228.0" promptText="insert path do sourcecode decorator here." text="C:\Users\Cel\Studium\Bachelor\Vorbereitung\Eclipse\workspace\responsetimesServlet\model\internal_architecture_model.sourcecodedecorator" />
+                                    <Button fx:id="resourceSelectButton" mnemonicParsing="false" text="Select ..." />
+                                    <Button fx:id="resourceLoadButton" mnemonicParsing="false" text="Load" />
+                                 </children>
+                              </HBox>
+                              <ScrollPane fitToHeight="true" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308">
+                                <content>
+                                  <AnchorPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="900.0" prefWidth="336.0">
+                                       <children>
+                                          <VBox fx:id="seffMethodsVBox" layoutX="133.0" layoutY="-68.0" prefHeight="200.0" prefWidth="336.0" spacing="10.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" />
+                                       </children></AnchorPane>
+                                </content>
+                              </ScrollPane>
+                              <HBox prefWidth="200.0" spacing="10.0">
+                                 <children>
+                                    <Button fx:id="resourceSelectAllButton" mnemonicParsing="false" text="Select all" />
+                                    <Button fx:id="resourceDeselectAllButton" mnemonicParsing="false" text="Deselect all" />
+                                 </children>
+                              </HBox>
+                           </children>
                         </VBox>
                      </children></AnchorPane>
             </content>
@@ -122,13 +142,7 @@
                                     <Label text="duration measurement phase:" GridPane.rowIndex="1" />
                                     <TextField fx:id="warmupDuration" promptText="time in s" text="0" GridPane.columnIndex="1" />
                                     <TextField fx:id="measurementDuration" promptText="time in s" text="10" GridPane.columnIndex="1" GridPane.rowIndex="1" />
-                                    <Label text="java model of kdm (&quot;*_java.xmi&quot;)" GridPane.rowIndex="2" />
-                                    <VBox prefHeight="200.0" prefWidth="100.0" GridPane.columnIndex="1" GridPane.rowIndex="2">
-                                       <children>
-                                          <TextField promptText="path to *_java.xmi" text="C:\Users\Cel\Studium\Bachelor\Vorbereitung\Eclipse\workspace\responsetimesServlet\responsetimesServlet_java.xmi" fx:id="xmiPathTextField" />
-                                          <Button mnemonicParsing="false" text="Select java model of KDM ..." fx:id="xmiSelectButton" />
-                                       </children>
-                                    </VBox>
+                                    <VBox prefHeight="200.0" prefWidth="100.0" GridPane.columnIndex="1" GridPane.rowIndex="2" />
                                  </children>
                               </GridPane>
                               <Button fx:id="runMeasurementButton" minWidth="-Infinity" mnemonicParsing="false" text="Start Measurements and Workload">

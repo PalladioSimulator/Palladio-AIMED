@@ -83,7 +83,7 @@ public class MeasurementRunner extends Observable implements Runnable {
 		loadConfig.setRampUpUsersPerInterval(1);
 		loadConfig.setRampUpIntervalLength(0);
 		loadConfig.setExperimentDuration(workloadDurationInS);
-		loadConfig.setCoolDownIntervalLength(1);
+		loadConfig.setCoolDownIntervalLength(5);
 		loadConfig.setCoolDownUsersPerInterval(1);
 		return loadConfig;
 	}
@@ -138,7 +138,7 @@ public class MeasurementRunner extends Observable implements Runnable {
 		instEntity.setTraceScope(true); //set this to true for tracing
 		//instEntity.setProbes(new String[] {probes.get(6)}); // NanoResponsetimeProbe
 		instEntity.setScope(customScopes.get(0)); // 0 = MethodScope
-		instEntity.setScopeSettings(methodPattern.split(",[ ]*")); //Instrument in parallel: Method comma separated.
+		instEntity.setScopeSettings(new String[]{methodPattern});
 		InstrumentationEntityBuilder entBuilder = descBuilder.newMethodScopeEntity(instEntity.getScopeSettings());
 		entBuilder.addProbe(probes.get(6));
 		entBuilder.enableTrace(); // uncomment this for no tracing

@@ -2,6 +2,7 @@ package ui;
 
 import java.io.File;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Observable;
@@ -30,6 +31,7 @@ import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.Accordion;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
@@ -53,16 +55,13 @@ public class GuiController implements Initializable, Observer {
 	private TitledPane pane1, pane2, pane3, pane4, pane5;
 	
 	@FXML
-	private TextField hostTextField, portTextField, warmupDuration, measurementDuration, xmiPathTextField;
-	
-	@FXML
-	private TextArea methodPatterns;
+	private TextField hostTextField, portTextField, warmupDuration, measurementDuration, resourcePathTextField;
 	
 	@FXML
 	private Label labelConnectState, labelMeasurementState;
 	
 	@FXML
-	private Button connectButton, runMeasurementButton, xmiSelectButton;
+	private Button connectButton, runMeasurementButton, resourceSelectButton, resourceLoadButton, resourceSelectAllButton, resourceDeselectAllButton;
 	
 	@FXML
 	private WebView webViewResults;
@@ -71,7 +70,7 @@ public class GuiController implements Initializable, Observer {
 	private ComboBox<String> selectAvailableAdapterBox;
 	
 	@FXML
-	private VBox workloadAdapterConfigVBox;
+	private VBox seffMethodsVBox, workloadAdapterConfigVBox;
 	
 	private StringProperty connectionState = new SimpleStringProperty("Connect");
 	private StringProperty measurementState = new SimpleStringProperty();
@@ -95,7 +94,7 @@ public class GuiController implements Initializable, Observer {
 			public void handle(MouseEvent arg0) {
 				aimed.setWorkloadAdapter(getSelectedWorkloadAdapter(), getWorkloadAdapterProperties());
 				aimed.startMeasurement(
-						getWarmupDuration(), getMeasurementDuration(), getMethodPatterns(), getKDMFile());
+						getWarmupDuration(), getMeasurementDuration(), getSelectedMethods());
 			}		
 		});
 		selectAvailableAdapterBox.valueProperty().addListener(new ChangeListener<String>() {
@@ -105,11 +104,28 @@ public class GuiController implements Initializable, Observer {
 			}
 		});
 		labelMeasurementState.textProperty().bind(measurementState);
-		xmiSelectButton.setOnMouseClicked(new EventHandler<MouseEvent>() {
+		resourceSelectButton.setOnMouseClicked(new EventHandler<MouseEvent>() {
 			@Override
 			public void handle(MouseEvent arg0) {
-				onXmiSelectButtonClicked();
-				
+				onResourceSelectButtonClicked();
+			}
+		});
+		resourceLoadButton.setOnMouseClicked(new EventHandler<MouseEvent>() {
+			@Override
+			public void handle(MouseEvent arg0) {
+				onResourceLoadButtonClicked();
+			}
+		});
+		resourceSelectAllButton.setOnMouseClicked(new EventHandler<MouseEvent>() {
+			@Override
+			public void handle(MouseEvent arg0) {
+				onSelectAllMethods(true);
+			}
+		});
+		resourceDeselectAllButton.setOnMouseClicked(new EventHandler<MouseEvent>() {
+			@Override
+			public void handle(MouseEvent arg0) {
+				onSelectAllMethods(false);
 			}
 		});
 		loadWorkloadAdapters();
@@ -254,15 +270,9 @@ public class GuiController implements Initializable, Observer {
 		runMeasurementButton.setText(text);
 	}
 	
-	private void setMethodPatternsDisable(boolean disabled) {
-		methodPatterns.setDisable(disabled);
-	}
-	
 	private void setConfigDisable(boolean disabled) {
 		warmupDuration.setDisable(disabled);
 		measurementDuration.setDisable(disabled);
-		xmiPathTextField.setDisable(disabled);
-		xmiSelectButton.setDisable(disabled);
 	}
 	
 	private void setMeasurementStateLabelText(String text) {
@@ -283,10 +293,6 @@ public class GuiController implements Initializable, Observer {
 	
 	private int getMeasurementDuration() {
 		return Integer.parseInt(measurementDuration.getText());
-	}
-	
-	private List<String> getMethodPatterns() {
-		return Arrays.asList(methodPatterns.getText().split("\n"));		
 	}
 	
 	private void setResult(List<String> resultLines) {
@@ -315,14 +321,14 @@ public class GuiController implements Initializable, Observer {
 	
 	private void onMeasurementStateMessage(MeasurementStateMessage message) {
 		if (message.getMeasurementState() == MeasurementState.STARTING) {
-			setMethodPatternsDisable(true);
+			setSelectMethodsDisable(true);
 			setSelectWorkloadDisable(true);
 			setConfigDisable(true);
 			setStartMeasurementButtonDisable(true);
 			setConnectButtonDisable(true);
 		}
 		if (message.getMeasurementState() == MeasurementState.STOPPING) {
-			setMethodPatternsDisable(false);
+			setSelectMethodsDisable(false);
 			setSelectWorkloadDisable(false);
 			setConfigDisable(false);
 			setStartMeasurementButtonDisable(false);
@@ -335,21 +341,61 @@ public class GuiController implements Initializable, Observer {
 		selectAvailableAdapterBox.setDisable(disable);
 		workloadAdapterConfigVBox.setDisable(disable);		
 	}
+	
+	private void setSelectMethodsDisable(boolean disable) {
+		resourcePathTextField.setDisable(disable);
+		resourceSelectButton.setDisable(disable);
+		resourceLoadButton.setDisable(disable);
+		seffMethodsVBox.setDisable(disable);
+		resourceSelectAllButton.setDisable(disable);
+		resourceDeselectAllButton.setDisable(disable);
+	}
 
-	private void onXmiSelectButtonClicked() {
+	private void onResourceSelectButtonClicked() {
 		FileChooser fileChooser = new FileChooser();
-		fileChooser.setTitle("Select xmi java model of KDM");
-		File selectedFile = fileChooser.showOpenDialog(xmiSelectButton.getScene().getWindow());
+		fileChooser.setTitle("Select Sourcecode Decorator file of your project.");
+		FileChooser.ExtensionFilter exFilter = new FileChooser.ExtensionFilter("Sourcecode decorator files", "(*.sourcecodedecorator)", "*.sourcecodedecorator");
+		fileChooser.getExtensionFilters().add(exFilter);
+		File selectedFile = fileChooser.showOpenDialog(resourceSelectButton.getScene().getWindow());
 		if (selectedFile != null) {
-			xmiPathTextField.setText(selectedFile.getPath());
+			resourcePathTextField.setText(selectedFile.getPath());
 		}	
 	}
 	
-	private File getKDMFile() {
-		if (xmiPathTextField.getText() == "") {
-			return null;
-		} else {
-			return new File(xmiPathTextField.getText());
+	private void onResourceLoadButtonClicked() {
+		seffMethodsVBox.getChildren().clear();
+		aimed.loadResources(resourcePathTextField.getText());
+		List<String> methods = aimed.getSeffMethodNames();
+		CheckBox checkBox;
+		for (String method : methods) {
+			checkBox = new CheckBox(method);
+			seffMethodsVBox.getChildren().add(checkBox);
 		}
+	}
+	
+	private void onSelectAllMethods(boolean selectAll) {
+		ObservableList<Node> list = seffMethodsVBox.getChildren();
+		CheckBox box;
+		for (Node node : list) {
+			if (node instanceof CheckBox){
+				box = (CheckBox) node;
+				box.setSelected(selectAll);
+			}
+		}
+	}
+	
+	private List<String> getSelectedMethods() {
+		List<String> result = new ArrayList<>();
+		ObservableList<Node> list = seffMethodsVBox.getChildren();
+		CheckBox box;
+		for (Node node : list) {
+			if (node instanceof CheckBox){
+				box = (CheckBox) node;
+				if (box.isSelected()) {
+					result.add(box.getText());
+				}
+			}
+		}
+		return result;
 	}
 }

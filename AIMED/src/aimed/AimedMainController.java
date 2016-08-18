@@ -42,10 +42,6 @@ public class AimedMainController extends Observable implements Observer {
 	
 	private Map<String, MeasurementData> results = new HashMap<>();
 	
-	private String currentMethodPattern;
-	
-	private File kdmFile;
-	
 	private List<IExtension> workloadExtensions;
 	
 	private AbstractWorkloadAdapter selectedWorkloadAdapter;
@@ -61,23 +57,16 @@ public class AimedMainController extends Observable implements Observer {
 
 	private AimedMainController() {
 		loadWorkloadAdapter();
+	}
+	
+	public void loadResources(String sourceCodeDecoratorFilePath) {
 		fileProcessor = new FileProcessor();
-		fileProcessor.loadRepositoryResource("");
-		fileProcessor.loadKdmResource("");
-		fileProcessor.loadSourceCodeDecoratorResource("");
-		fileProcessor.getSeffMethods();
+		fileProcessor.loadResources(sourceCodeDecoratorFilePath);
 	}
 	
-	public void loadKdmResource(String kdmFilePath) {
-		fileProcessor.loadKdmResource(kdmFilePath);
+	public List<String> getSeffMethodNames() {
+		return fileProcessor.getSeffMethods();
 	}
-	public void loadSourceCodeDecoratorResources(String sourceCodeDecoratorFilePath) {
-		fileProcessor.loadSourceCodeDecoratorResource(sourceCodeDecoratorFilePath);
-	}
-	public void loadRepositoryResources(String repositoryFilePath) {
-		fileProcessor.loadRepositoryResource(repositoryFilePath);
-	}
-	
 	
 	private void loadWorkloadAdapter() {
 		workloadExtensions = new ArrayList<>();
@@ -145,11 +134,16 @@ public class AimedMainController extends Observable implements Observer {
 	public void startMeasurement(
 			final int warmupDurationInS, 
 			final int measurementDurationInS, 
-			final List<String> methodPatterns,
-			final File kdmFile
+			List<String> methodPatterns
 			) {		
-		this.kdmFile = kdmFile;
-		
+		List<String> newMethodPatterns = new ArrayList<>();
+		for (String method : methodPatterns) {
+			if (!method.endsWith("*")) {
+				method = method + "*";
+			}
+			newMethodPatterns.add(method);
+		}
+		methodPatterns = newMethodPatterns;
 		notifyObservers(new MeasurementStateMessage(MeasurementState.STARTING, "Warming up..."));
 		MeasurementRunner runner = createRunnableMeasurement(warmupDurationInS, measurementDurationInS, methodPatterns);
 		Future<?> future = Executors.newCachedThreadPool().submit(runner);
@@ -194,10 +188,6 @@ public class AimedMainController extends Observable implements Observer {
 		return sum / patternsFound;
 	}
 	
-	public String getCurrentMethodPattern() {
-		return currentMethodPattern;
-	}
-	
 	public void appendResults(String pattern, MeasurementData measurementData) {
 		results.put(pattern, measurementData);
 	}
@@ -211,9 +201,6 @@ public class AimedMainController extends Observable implements Observer {
 			notifyObservers(new MeasurementStateMessage(MeasurementState.CALCULATING, String.format("Now calculating results for %s.", method)));
 			resultCalc.calculateAndWriteResourceDemand(method, results.get(method));
 		}
-		
-		KdmProcessor kdmProcessor = new KdmProcessor();
-		kdmProcessor.parse(kdmFile);
 		String completeMethodName;
 		List<String> traceMethods;
 		List<String> resultLines = new ArrayList<>();
@@ -221,7 +208,6 @@ public class AimedMainController extends Observable implements Observer {
 		for (String pattern : results.keySet()) {
 			completeMethodName = getCompleteNameOfInvestigatedMethod(pattern, results.get(pattern));
 			traceMethods = getTraceMethodsOfInvestigatedMethod(pattern, results.get(pattern));
-			traceMethods = kdmProcessor.getTrace1MethodPatterns(completeMethodName, traceMethods);
 			responseTime = calculateResponseTimeOfMethod(completeMethodName, traceMethods, results.get(pattern));
 			resultLines.add(pattern + ": " + String.valueOf(responseTime) + " ns");
 		}
