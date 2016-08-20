@@ -24,6 +24,7 @@ import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.Event;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -38,6 +39,7 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TitledPane;
 import javafx.scene.control.Tooltip;
+import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.VBox;
 import javafx.scene.web.WebView;
@@ -116,6 +118,8 @@ public class GuiController implements Initializable, Observer {
 				onResourceLoadButtonClicked();
 			}
 		});
+		//TODO: Remove Event.fireEvent
+		Event.fireEvent(resourceLoadButton, new MouseEvent(MouseEvent.MOUSE_CLICKED, 0, 0, 0, 0, MouseButton.PRIMARY, 1, true, true, true, true, true, true, true, true, true, true, null));
 		resourceSelectAllButton.setOnMouseClicked(new EventHandler<MouseEvent>() {
 			@Override
 			public void handle(MouseEvent arg0) {
@@ -369,6 +373,10 @@ public class GuiController implements Initializable, Observer {
 		CheckBox checkBox;
 		for (String method : methods) {
 			checkBox = new CheckBox(method);
+			//TODO: Remove if construct
+			if (method.contains("doX")) {
+				checkBox.setSelected(true);
+			}
 			seffMethodsVBox.getChildren().add(checkBox);
 		}
 	}

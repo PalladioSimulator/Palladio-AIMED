@@ -89,6 +89,9 @@ public class MeasurementRunner extends Observable implements Runnable {
 	}
 	
 	private void warmUp() {
+		if (warmupDuration == 0) {
+			return;
+		}
 		LoadConfig loadConfig = generateLoadConfig(warmupDuration);
 		try {
 			workloadAdapter.startLoad(loadConfig);

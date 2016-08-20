@@ -17,6 +17,7 @@ import org.lpe.common.util.LpeStringUtils;
 import org.palladiosimulator.pcm.seff.AbstractAction;
 import org.palladiosimulator.pcm.seff.BranchAction;
 import org.palladiosimulator.pcm.seff.LoopAction;
+import org.palladiosimulator.pcm.seff.ResourceDemandingInternalBehaviour;
 import org.palladiosimulator.pcm.seff.ResourceDemandingSEFF;
 
 public class ResultCalculator {
@@ -44,47 +45,34 @@ public class ResultCalculator {
 
 	public void calculateAndWriteResourceDemand(String methodName, MeasurementData data) {
 		this.methodName = methodName;
-		splitMeasurementData(data.getRecords());
+		splitMeasurementData(methodName, data.getRecords());
 		ResourceDemandingSEFF seff = fileProcessor.getSeff(methodName);
+		Amount<Duration> methodResponseTime;
 		for (List<ResponseTimeRecord> records : measurementsList) {
-			calculateInvestigatedResponseTime(seff, records);
+			methodResponseTime = calculateInvestigatedResponseTime(seff, records);
+			System.out.println(methodName + ": " + methodResponseTime.doubleValue(SI.SECOND));
 		}
 	}
 
-	private void splitMeasurementData(List<AbstractRecord> measurementRecords) {
+	private void splitMeasurementData(String methodName, List<AbstractRecord> measurementRecords) {
 		measurementsList = new ArrayList<>();
 		List<ResponseTimeRecord> oneMeasurement = new ArrayList<>();
-		long prevCallId = -1;
+		ResponseTimeRecord rtRec;
 		for (AbstractRecord record : measurementRecords) {
-			if (prevCallId == -1) {
-				oneMeasurement.add((ResponseTimeRecord) record);
-				prevCallId = record.getCallId();
-			} else if (prevCallId > record.getCallId()) {
-				oneMeasurement.add((ResponseTimeRecord) record);
-				prevCallId = record.getCallId();
-			} else { // prevCallId <= record.getCallId()
-				prevCallId = record.getCallId();
+			rtRec = (ResponseTimeRecord) record;
+			oneMeasurement.add(rtRec);
+			if (LpeStringUtils.patternMatches(rtRec.getOperation(), methodName)) {
 				measurementsList.add(oneMeasurement);
 				oneMeasurement = new ArrayList<>();
-				oneMeasurement.add((ResponseTimeRecord) record);
 			}
 		}
 	}
 
-	private void calculateInvestigatedResponseTime(ResourceDemandingSEFF seff, List<ResponseTimeRecord> records) {
+	private Amount<Duration> calculateInvestigatedResponseTime(ResourceDemandingSEFF seff, List<ResponseTimeRecord> records) {
 		Amount<Duration> investigatedResponseTime = getInvestigatedMethodResponseTime(records);
-		List<AbstractAction> actions = seff.getSteps_Behaviour();
-		for (AbstractAction action : actions) {
-			if (action instanceof LoopAction) {
-				String methodName = fileProcessor.getMethodName(action);
-				investigatedResponseTime.minus(getSumResponseTimeOfMethod(methodName, records));
-			}
-			if (action instanceof BranchAction) {
-				String ifMethod = fileProcessor.getIfMethodName(action);
-				String elseMethod = fileProcessor.getElseMethodName(action);
-				investigatedResponseTime.minus(getBranchResponseTime(ifMethod, elseMethod, records));
-			}
-		}
+		List<String> trace1Methods = fileProcessor.getTrace1Methods(methodName);
+		
+		return investigatedResponseTime;
 	}
 
 	private Amount<Duration> getInvestigatedMethodResponseTime(List<ResponseTimeRecord> records) {
@@ -95,7 +83,7 @@ public class ResultCalculator {
 		}
 		return Amount.valueOf(0, SI.SECOND);
 	}
-
+	
 	private Amount<Duration> getSumResponseTimeOfMethod(String methodName, List<ResponseTimeRecord> records) {
 		Amount<Duration> result = Amount.valueOf(0, SI.NANO(SI.SECOND));
 		for (ResponseTimeRecord record : records) {
@@ -105,52 +93,4 @@ public class ResultCalculator {
 		}
 		return result;
 	}
-
-	private Amount<Duration> getBranchResponseTime(String ifMethodName, String elseMethodName,
-			List<ResponseTimeRecord> records) {
-		Amount<Duration> result = Amount.valueOf(0, SI.NANO(SI.SECOND));
-		if (elseMethodName == null || elseMethodName.isEmpty()) {
-			result = getSumResponseTimeOfMethod(ifMethodName, records)
-					.times(getCallPropabilityInWholeRecords(ifMethodName));
-		} else {
-			double ifMethodCount = getCallCount(ifMethodName, records);
-			double elseMethodCount = getCallCount(elseMethodName, records);
-			double sum = ifMethodCount + elseMethodCount;
-			double ifMethodPropability = 0;
-			double elseMethodPropability = 0;
-			if (sum != 0) {
-				ifMethodPropability = ifMethodCount / sum;
-				elseMethodPropability = elseMethodCount / sum;
-			}
-			Amount<Duration> ifMethodResponseTime = getSumResponseTimeOfMethod(ifMethodName, records)
-					.times(ifMethodPropability);
-			Amount<Duration> elseMethodResponseTime = getSumResponseTimeOfMethod(elseMethodName, records)
-					.times(elseMethodPropability);
-			result = ifMethodResponseTime.plus(elseMethodResponseTime);
-		}
-		return result;
-	}
-
-	private int getCallCount(String methodName, List<ResponseTimeRecord> records) {
-		int result = 0;
-		for (ResponseTimeRecord record : records) {
-			if (LpeStringUtils.patternMatches(record.getOperation(), methodName)) {
-				result++;
-			}
-		}
-		return result;
-	}
-
-	private double getCallPropabilityInWholeRecords(String methodName) {
-		int callCount = 0;
-		double result = 0;
-		for (List<ResponseTimeRecord> records : measurementsList) {
-			callCount += getCallCount(methodName, records);
-		}
-		if (measurementsList.size() != 0) {
-			result = (double) callCount / (double) measurementsList.size();
-		}
-		return result;
-	}
-
 }
