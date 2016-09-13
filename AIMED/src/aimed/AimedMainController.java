@@ -26,6 +26,7 @@ import org.lpe.common.extension.ExtensionRegistry;
 import org.lpe.common.extension.IExtension;
 import org.lpe.common.extension.IExtensionRegistry;
 import org.lpe.common.util.LpeStringUtils;
+import org.palladiosimulator.pcm.seff.ResourceDemandingSEFF;
 import org.spotter.core.workload.AbstractWorkloadAdapter;
 import org.spotter.core.workload.IWorkloadAdapter;
 import org.spotter.exceptions.WorkloadException;
@@ -65,7 +66,17 @@ public class AimedMainController extends Observable implements Observer {
 	}
 	
 	public List<String> getSeffMethodNames() {
-		return fileProcessor.getSeffMethods();
+		List<String> result = new ArrayList<>();
+		List<ResourceDemandingSEFF> seffs = fileProcessor.getSeffs();
+		StringBuilder sb;
+		for (ResourceDemandingSEFF seff : seffs) {
+			sb = new StringBuilder();
+			sb.append(fileProcessor.extractEntityDefinition(seff.getBasicComponent_ServiceEffectSpecification().getEntityName()));
+			sb.append(".");
+			sb.append(seff.getDescribedService__SEFF().getEntityName());
+			result.add(sb.toString());
+		}
+		return result;
 	}
 	
 	private void loadWorkloadAdapter() {
@@ -199,7 +210,7 @@ public class AimedMainController extends Observable implements Observer {
 		resultCalc.setCPUThrougput(Amount.valueOf(2.4, SI.GIGA(SI.HERTZ)));
 		for (String method : results.keySet()) {
 			notifyObservers(new MeasurementStateMessage(MeasurementState.CALCULATING, String.format("Now calculating results for %s.", method)));
-			resultCalc.calculateAndWriteResourceDemand(method, results.get(method));
+			resultCalc.calculateResourceDemand(method, results.get(method));
 		}
 		String completeMethodName;
 		List<String> traceMethods;

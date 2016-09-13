@@ -20,11 +20,15 @@ import org.eclipse.gmt.modisco.omg.kdm.kdm.KdmPackage;
 import org.palladiosimulator.pcm.repository.RepositoryPackage;
 import org.palladiosimulator.pcm.repository.Signature;
 import org.palladiosimulator.pcm.seff.AbstractAction;
+import org.palladiosimulator.pcm.seff.ExternalCallAction;
+import org.palladiosimulator.pcm.seff.LoopAction;
 import org.palladiosimulator.pcm.seff.ResourceDemandingSEFF;
 import org.somox.sourcecodedecorator.MethodLevelSourceCodeLink;
 import org.somox.sourcecodedecorator.Seff2MethodLink;
 import org.somox.sourcecodedecorator.SourceCodeDecoratorPackage;
 import org.somox.sourcecodedecorator.SourceCodeDecoratorRepository;
+
+import com.strobel.decompiler.ast.Loop;
 
 public class FileProcessor {
 	private Resource sourceCodeResource;
@@ -48,25 +52,20 @@ public class FileProcessor {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		
 	}
 	
-	public List<String> getSeffMethods() {
+	public List<ResourceDemandingSEFF> getSeffs() {
 		EList<Seff2MethodLink> smls = sourceCodeModel.getSeff2MethodLink();
-		List<String> result = new ArrayList<>();
-		StringBuilder sb;
+		List<ResourceDemandingSEFF> result = new ArrayList<>();
+		ResourceDemandingSEFF seff;
 		for (Seff2MethodLink sml : smls) {
-			sb = new StringBuilder();
-			ResourceDemandingSEFF seff = (ResourceDemandingSEFF) sml.getSeff();
-			sb.append(extractEntityDefinition(seff.getBasicComponent_ServiceEffectSpecification().getEntityName()));
-			sb.append(".");
-			sb.append(seff.getDescribedService__SEFF().getEntityName());
-			result.add(sb.toString());
+			seff = (ResourceDemandingSEFF) sml.getSeff();
+			result.add(seff);
 		}
 		return result;
 	}
 	
-	private String extractEntityDefinition(String entityName) {
+	public String extractEntityDefinition(String entityName) {
 		int stringEnd = entityName.length();
 		if (entityName.endsWith(">")) {
 			stringEnd -= 1;
@@ -123,8 +122,17 @@ public class FileProcessor {
 	}
 	
 	public List<String> getTrace1Methods(String completeMethodName) {
-		//Current does not work. usage.getMethod() returns not the investigated method, but the current method itself
-		// caused by resolving the XML-Path again.
+		ResourceDemandingSEFF searchedSeff = getSeff(completeMethodName);
+		List<MethodLevelSourceCodeLink> mlscls = sourceCodeModel.getMethodLevelSourceCodeLink();
+		for (MethodLevelSourceCodeLink mlscl : mlscls) {
+			List<AbstractMethodInvocation> usages = mlscl.getFunction().getUsages();
+			for (AbstractMethodInvocation usage : usages) {
+				System.out.println(usage.getMethod());
+			}
+			System.out.println();
+		}
+		
+		/*
 		List<String> result = new ArrayList<>();
 		String methodName = extractMethodName(completeMethodName);
 		String className = extractClassName(completeMethodName);
@@ -142,6 +150,7 @@ public class FileProcessor {
 				}
 			}
 		}
-		return result;
+		*/
+		return null;
 	}
 }
