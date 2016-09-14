@@ -1,8 +1,10 @@
 package aimed;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.measure.quantity.Duration;
@@ -18,10 +20,14 @@ import org.lpe.common.util.LpeStringUtils;
 import org.palladiosimulator.pcm.seff.AbstractAction;
 import org.palladiosimulator.pcm.seff.BranchAction;
 import org.palladiosimulator.pcm.seff.ExternalCallAction;
+import org.palladiosimulator.pcm.seff.InternalAction;
 import org.palladiosimulator.pcm.seff.LoopAction;
 import org.palladiosimulator.pcm.seff.ResourceDemandingInternalBehaviour;
 import org.palladiosimulator.pcm.seff.ResourceDemandingSEFF;
+import org.palladiosimulator.pcm.seff.StartAction;
 import org.palladiosimulator.pcm.seff.StopAction;
+
+import util.ResourceDemandingInterval;
 
 public class ResultCalculator {
 	private List<List<ResponseTimeRecord>> measurementsList;
@@ -29,9 +35,10 @@ public class ResultCalculator {
 	private FileProcessor fileProcessor;
 	private Amount<Frequency> throughputCpu = Amount.valueOf(0, SI.HERTZ);
 	private Amount<Frequency> throughputHdd = Amount.valueOf(0, SI.HERTZ);
+	private Map<InternalAction, Set<Amount<Duration>>> responseTimesPerInternalAction;
 
 	public ResultCalculator() {
-
+		responseTimesPerInternalAction = new HashMap<>();
 	}
 
 	public void setFileProcessor(FileProcessor fileProcessor) {
@@ -50,13 +57,18 @@ public class ResultCalculator {
 		this.methodName = methodName;
 		splitMeasurementData(methodName, data.getRecords());
 		ResourceDemandingSEFF seff = fileProcessor.getSeff(methodName);
-		Amount<Duration> methodResponseTime;
+		Map<InternalAction, ResourceDemandingInterval> intervals = getResourceDemandingIntervals(seff);
+		for (InternalAction ia : intervals.keySet()) {
+			calculateResponseTimes(ia, intervals.get(ia));
+		}
+		
+		/*Amount<Duration> methodResponseTime;
 		for (List<ResponseTimeRecord> records : measurementsList) {
 			methodResponseTime = calculateResponseTime(seff, records);
 			System.out.println(methodName + ": " + methodResponseTime.doubleValue(SI.SECOND));
-		}
+		}*/
 	}
-
+	
 	private void splitMeasurementData(String methodName, List<AbstractRecord> measurementRecords) {
 		measurementsList = new ArrayList<>();
 		List<ResponseTimeRecord> oneMeasurement = new ArrayList<>();
@@ -70,32 +82,84 @@ public class ResultCalculator {
 			}
 		}
 	}
-
-	private Amount<Duration> calculateResponseTime(ResourceDemandingSEFF seff, List<ResponseTimeRecord> records) {
-		Amount<Duration> resultingResponseTime = Amount.valueOf(0, SI.NANO(SI.SECOND));
-		List<String> trace1Methods = fileProcessor.getTrace1Methods(methodName);
+	
+	private Map<InternalAction, ResourceDemandingInterval> getResourceDemandingIntervals(ResourceDemandingSEFF seff) {
+		Map<InternalAction, ResourceDemandingInterval> result = new HashMap<>();
 		List<AbstractAction> actions = seff.getSteps_Behaviour();
-		Amount<Duration> intervalBeginTimeStamp = getMethodNanoTimestamp(methodName, records);
-		Amount<Duration> intervalEndTimeStamp;
+		ResourceDemandingInterval interval;
 		for (AbstractAction action : actions) {
-			//TODO: Save each interval separate
-			if (action instanceof LoopAction) {
-				LoopAction la = (LoopAction) action;
-				intervalEndTimeStamp = getLoopActionBodyExternalCallTimestamp(la, records);
-				resultingResponseTime = removeChildMethodResponseTimes(intervalBeginTimeStamp, intervalEndTimeStamp, records);				
-				intervalBeginTimeStamp = intervalEndTimeStamp.plus(getResponseTimeByThisTimeStamp(intervalEndTimeStamp, records));
-			} else 
-			if (action instanceof ExternalCallAction) {
-				ExternalCallAction eca = (ExternalCallAction) action;
-				intervalEndTimeStamp = getMethodNanoTimestamp(getMethodDefinitionAndAddPlaceholder(eca), records);
-				resultingResponseTime = removeChildMethodResponseTimes(intervalBeginTimeStamp, intervalEndTimeStamp, records);				
-			} else
-			if (action instanceof StopAction) {
-				
+			if (action instanceof InternalAction) {
+				result = new HashMap<>();
+				interval = getIntervalOfInternalAction((InternalAction) action);
+				result.put((InternalAction) action, interval);
 			}
-			//TODO: move Interval;
 		}
-		return resultingResponseTime;
+		return result;
+	}
+	
+	private ResourceDemandingInterval getIntervalOfInternalAction(InternalAction ia) {
+		ResourceDemandingInterval result = new ResourceDemandingInterval();
+		result.begin = getIntervalBegin(ia);
+		result.end = getIntervalEnd(ia);
+		return result;
+	}
+	
+	private AbstractAction getIntervalBegin(InternalAction ia) {
+		AbstractAction temp = ia;
+		while (temp != null) {
+			temp = temp.getPredecessor_AbstractAction();
+			if (getIntervalBorderAction(temp) != null) {
+				return getIntervalBorderAction(temp);
+			}
+		}
+		System.out.println("Interval Begin not found in getIntervalBegin");
+		return null;
+	}
+	
+	private AbstractAction getIntervalEnd(InternalAction ia) {
+		AbstractAction temp = ia;
+		while (temp != null) {
+			temp = temp.getSuccessor_AbstractAction();
+			if (getIntervalBorderAction(temp) != null) {
+				return getIntervalBorderAction(temp);
+			}
+		}
+		System.out.println("Interval End not found in getIntervalEnd");
+		return null;
+	}
+	
+	private AbstractAction getIntervalBorderAction(AbstractAction action) {
+		if (action instanceof StartAction) {
+			return action;
+		}
+		if (action instanceof ExternalCallAction) {
+			return action;
+		}
+		if (action instanceof LoopAction) {
+			return getExternalCallFromLoopBody((LoopAction) action);
+		} 
+		if (action instanceof BranchAction) {
+			//TODO: Handle branch action if has external call
+		}
+		if (action instanceof StopAction) {
+			return action;
+		} 
+		return null;
+	}
+	
+	private ExternalCallAction getExternalCallFromLoopBody(LoopAction la) {
+		List<AbstractAction> actions = la.getBodyBehaviour_Loop().getSteps_Behaviour();
+		for (AbstractAction action : actions) {
+			if (action instanceof ExternalCallAction) {
+				return (ExternalCallAction) action;
+			}
+		}
+		return null;
+	}
+	
+
+	private void calculateResponseTimes(InternalAction ia, ResourceDemandingInterval rdi) {
+		
 	}
 	
 	private Amount<Duration> getResponseTimeByThisTimeStamp(Amount<Duration> nanoTimeStamp, List<ResponseTimeRecord> records) {

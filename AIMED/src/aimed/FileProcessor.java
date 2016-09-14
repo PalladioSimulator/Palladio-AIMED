@@ -30,6 +30,8 @@ import org.somox.sourcecodedecorator.SourceCodeDecoratorRepository;
 
 import com.strobel.decompiler.ast.Loop;
 
+import util.ResourceDemandingInterval;
+
 public class FileProcessor {
 	private Resource sourceCodeResource;
 	private SourceCodeDecoratorRepository sourceCodeModel;
