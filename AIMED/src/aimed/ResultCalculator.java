@@ -4,10 +4,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 
 import javax.measure.quantity.Duration;
 import javax.measure.quantity.Frequency;
@@ -20,11 +20,11 @@ import org.aim.artifacts.records.ResponseTimeRecord;
 import org.jscience.physics.amount.Amount;
 import org.lpe.common.util.LpeStringUtils;
 import org.palladiosimulator.pcm.seff.AbstractAction;
+import org.palladiosimulator.pcm.seff.AbstractBranchTransition;
 import org.palladiosimulator.pcm.seff.BranchAction;
 import org.palladiosimulator.pcm.seff.ExternalCallAction;
 import org.palladiosimulator.pcm.seff.InternalAction;
 import org.palladiosimulator.pcm.seff.LoopAction;
-import org.palladiosimulator.pcm.seff.ResourceDemandingInternalBehaviour;
 import org.palladiosimulator.pcm.seff.ResourceDemandingSEFF;
 import org.palladiosimulator.pcm.seff.StartAction;
 import org.palladiosimulator.pcm.seff.StopAction;
@@ -38,7 +38,7 @@ public class ResultCalculator {
 	private Amount<Frequency> throughputCpu = Amount.valueOf(0, SI.HERTZ);
 	private Amount<Frequency> throughputHdd = Amount.valueOf(0, SI.HERTZ);
 	private Map<InternalAction, Set<Amount<Duration>>> responseTimesPerInternalAction;
-	private Amount<Duration> prevTimeStamp;
+	private LinkedList<Amount<Duration>> prevTimeStamps;
 
 	public ResultCalculator() {
 		responseTimesPerInternalAction = new HashMap<>();
@@ -61,7 +61,7 @@ public class ResultCalculator {
 		splitMeasurementData(methodName, data.getRecords());
 		ResourceDemandingSEFF seff = fileProcessor.getSeff(methodName);
 		Map<InternalAction, ResourceDemandingInterval> intervals = getResourceDemandingIntervals(seff);
-		prevTimeStamp = Amount.valueOf(0, SI.NANO(SI.SECOND));
+		prevTimeStamps = new LinkedList<>();
 		for (InternalAction ia : intervals.keySet()) {
 			calculateResponseTimes(ia, intervals.get(ia));
 		}
@@ -137,6 +137,7 @@ public class ResultCalculator {
 			return getExternalCallFromLoopBody((LoopAction) action);
 		} 
 		if (action instanceof BranchAction) {
+			return getExternalCallFromBranchBody((BranchAction) action);
 			//TODO: Handle branch action if has external call
 		}
 		if (action instanceof StopAction) {
@@ -155,6 +156,19 @@ public class ResultCalculator {
 		return null;
 	}
 	
+	private ExternalCallAction getExternalCallFromBranchBody(BranchAction ba) {
+		List<AbstractBranchTransition> abts = ba.getBranches_Branch();
+		for (AbstractBranchTransition abt : abts) {
+			List<AbstractAction> actions = abt.getBranchBehaviour_BranchTransition().getSteps_Behaviour();
+			for (AbstractAction action : actions) {
+				if (action instanceof ExternalCallAction) {
+					return (ExternalCallAction) action;
+				}
+			}
+		}
+		return null;
+	}
+	
 	private void calculateResponseTimes(InternalAction ia, ResourceDemandingInterval rdi) {
 		Set<Amount<Duration>> responseTimes = new HashSet<>();
 		for (List<ResponseTimeRecord> records : measurementsList) {
@@ -166,20 +180,41 @@ public class ResultCalculator {
 	private Amount<Duration> getResponseTimePerRecord(ResourceDemandingInterval rdi, List<ResponseTimeRecord> records) {
 		Amount<Duration> beginTimeStamp = Amount.valueOf(0, SI.NANO(SI.SECOND));
 		Amount<Duration> endTimeStamp = Amount.valueOf(0, SI.NANO(SI.SECOND));
-		if (rdi.end instanceof ExternalCallAction) {
-			endTimeStamp = getMethodNanoTimestamp(getMethodDefinitionAndAddPlaceholder((ExternalCallAction) rdi.end), records, prevTimeStamp);
-		}
-		if (rdi.end instanceof StopAction) {
-			endTimeStamp = getMethodNanoTimestamp(methodName, records).plus(getResponseTimeByThisTimeStamp(getMethodNanoTimestamp(methodName, records), records));
+		Amount<Duration> prevTimeStamp;
+		if (measurementsList.size() == prevTimeStamps.size()) {
+			prevTimeStamp = prevTimeStamps.removeFirst();
+		} else {
+			prevTimeStamp = Amount.valueOf(0, SI.NANO(SI.SECOND));
 		}
 		if (rdi.begin instanceof StartAction) {
 			beginTimeStamp = getMethodNanoTimestamp(methodName, records);
 		}
 		if (rdi.begin instanceof ExternalCallAction) {
-			String method = getMethodDefinitionAndAddPlaceholder((ExternalCallAction) rdi.begin);
-			beginTimeStamp = getMethodNanoTimestamp(method, records, prevTimeStamp);
+			beginTimeStamp = getMethodNanoTimestamp(getMethodDefinitionAndAddPlaceholder((ExternalCallAction) rdi.begin), records, prevTimeStamp);
+			if (beginTimeStamp.getExactValue() == 0) {
+				if (wasInABranch((ExternalCallAction) rdi.begin)) {
+					rdi.begin = getOtherBranchExternalCall((ExternalCallAction) rdi.begin);
+					beginTimeStamp = getMethodNanoTimestamp(getMethodDefinitionAndAddPlaceholder((ExternalCallAction) rdi.begin), records, prevTimeStamp);
+				}
+			}
+		}
+		prevTimeStamp = beginTimeStamp.plus(Amount.valueOf("1 ns"));
+		if (rdi.end instanceof ExternalCallAction) {
+			endTimeStamp = getMethodNanoTimestamp(getMethodDefinitionAndAddPlaceholder((ExternalCallAction) rdi.end), records, prevTimeStamp);
+			if (endTimeStamp.getExactValue() == 0) {
+				if (wasInABranch((ExternalCallAction) rdi.end)) {
+					rdi.end = getOtherBranchExternalCall((ExternalCallAction) rdi.end);
+					endTimeStamp = getMethodNanoTimestamp(getMethodDefinitionAndAddPlaceholder((ExternalCallAction) rdi.end), records, prevTimeStamp);
+				}
+			}
+		}
+		if (rdi.end instanceof StopAction) {
+			endTimeStamp = getMethodNanoTimestamp(methodName, records).plus(getResponseTimeByThisTimeStamp(getMethodNanoTimestamp(methodName, records), records));
+		}
+		
+		if (rdi.begin instanceof ExternalCallAction) {
 			if (wasInALoop((ExternalCallAction) rdi.begin)) {
-				beginTimeStamp = getLastExternalCallTimeStamp(method, beginTimeStamp, endTimeStamp, records);
+				beginTimeStamp = getLastExternalCallTimeStamp(getMethodDefinitionAndAddPlaceholder((ExternalCallAction) rdi.begin), beginTimeStamp, endTimeStamp, records);
 			}
 			beginTimeStamp = beginTimeStamp.plus(getResponseTimeByThisTimeStamp(beginTimeStamp, records));
 		}
@@ -192,7 +227,7 @@ public class ResultCalculator {
 				result = result.minus(Amount.valueOf(nsRec.getResponseTime(), SI.NANO(SI.SECOND)));
 			}
 		}
-		//prevTimeStamp = endTimeStamp;
+		prevTimeStamps.add(endTimeStamp);
 		return result;
 	}
 	
@@ -210,6 +245,50 @@ public class ResultCalculator {
 			}
 		}
 		return false;
+	}
+	
+	private boolean wasInABranch (ExternalCallAction eca) {
+		List<AbstractAction> actions = fileProcessor.getSeff(methodName).getSteps_Behaviour();
+		for(AbstractAction action : actions) {
+			if (action instanceof BranchAction) {
+				BranchAction ba = (BranchAction) action;
+				List<AbstractBranchTransition> abts = ba.getBranches_Branch();
+				for (AbstractBranchTransition abt : abts) {
+					List<AbstractAction> aas = abt.getBranchBehaviour_BranchTransition().getSteps_Behaviour();
+					for (AbstractAction aa : aas) {
+						if (aa instanceof ExternalCallAction) {
+							if (aa.equals(eca)) {
+								return true;
+							}
+						}
+					}
+					
+				}
+			}
+		}
+		return false;
+	}
+	
+	private ExternalCallAction getOtherBranchExternalCall(ExternalCallAction eca) {
+		List<AbstractAction> actions = fileProcessor.getSeff(methodName).getSteps_Behaviour();
+		ExternalCallAction prevEca = eca;
+		for(AbstractAction action : actions) {
+			if (action instanceof BranchAction) {
+				BranchAction ba = (BranchAction) action;
+				List<AbstractBranchTransition> abts = ba.getBranches_Branch();
+				for (AbstractBranchTransition abt : abts) {
+					List<AbstractAction> aas = abt.getBranchBehaviour_BranchTransition().getSteps_Behaviour();
+					for (AbstractAction aa : aas) {
+						if (aa instanceof ExternalCallAction) {
+							if (!aa.equals(eca)) {
+								prevEca = (ExternalCallAction) aa;
+							}
+						}
+					}					
+				}
+			}
+		}
+		return prevEca;
 	}
 	
 	private Amount<Duration> getLastExternalCallTimeStamp(String methodPattern, Amount<Duration> beginTimeStamp, Amount<Duration> endTimeStamp, List<ResponseTimeRecord> records) {
@@ -241,7 +320,6 @@ public class ResultCalculator {
 	
 	private Amount<Duration> removeChildMethodResponseTimes(Amount<Duration> intervalBeginTimeStamp, Amount<Duration> intervalEndTimeStamp, List<ResponseTimeRecord> records) {
 		Amount<Duration> result = intervalEndTimeStamp.minus(intervalBeginTimeStamp);
-		Amount<Duration> recordResponseTime;
 		NanoResponseTimeRecord nsRec;
 		for (ResponseTimeRecord record : records) {
 			nsRec = (NanoResponseTimeRecord) record;
@@ -263,7 +341,6 @@ public class ResultCalculator {
 				}
 			}
 		}
-		System.out.println("Method not found in getMethodNanoTimestamp");
 		return Amount.valueOf(0, SI.NANO(SI.SECOND));
 	}
 	
@@ -277,15 +354,5 @@ public class ResultCalculator {
 		int lastDot = classDefinition.lastIndexOf(".");
 		classDefinition = classDefinition.substring(lastDot + 1);
 		return "*" + classDefinition + "." + methodName + "*";
-	}
-	
-	private Amount<Duration> getSumResponseTimeOfMethod(String methodName, List<ResponseTimeRecord> records) {
-		Amount<Duration> result = Amount.valueOf(0, SI.NANO(SI.SECOND));
-		for (ResponseTimeRecord record : records) {
-			if (LpeStringUtils.patternMatches(record.getOperation(), methodName)) {
-				result.plus(Amount.valueOf(record.getResponseTime(), SI.NANO(SI.SECOND)));
-			}
-		}
-		return result;
 	}
 }
