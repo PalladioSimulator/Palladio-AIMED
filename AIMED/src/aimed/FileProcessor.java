@@ -1,6 +1,7 @@
 package aimed;
 
 import java.io.IOException;
+import java.security.acl.Owner;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,11 +13,39 @@ import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.emf.ecore.resource.impl.ResourceSetImpl;
 import org.eclipse.emf.ecore.xmi.impl.XMIResourceFactoryImpl;
 import org.eclipse.gmt.modisco.java.AbstractMethodInvocation;
+import org.eclipse.gmt.modisco.java.ArrayInitializer;
+import org.eclipse.gmt.modisco.java.ArrayLengthAccess;
+import org.eclipse.gmt.modisco.java.AssertStatement;
+import org.eclipse.gmt.modisco.java.Assignment;
 import org.eclipse.gmt.modisco.java.Block;
 import org.eclipse.gmt.modisco.java.BodyDeclaration;
+import org.eclipse.gmt.modisco.java.CastExpression;
+import org.eclipse.gmt.modisco.java.CatchClause;
+import org.eclipse.gmt.modisco.java.ClassInstanceCreation;
+import org.eclipse.gmt.modisco.java.ConditionalExpression;
+import org.eclipse.gmt.modisco.java.DoStatement;
+import org.eclipse.gmt.modisco.java.EnhancedForStatement;
+import org.eclipse.gmt.modisco.java.Expression;
+import org.eclipse.gmt.modisco.java.ExpressionStatement;
+import org.eclipse.gmt.modisco.java.FieldAccess;
+import org.eclipse.gmt.modisco.java.ForStatement;
+import org.eclipse.gmt.modisco.java.IfStatement;
+import org.eclipse.gmt.modisco.java.LabeledStatement;
+import org.eclipse.gmt.modisco.java.MethodInvocation;
+import org.eclipse.gmt.modisco.java.ReturnStatement;
 import org.eclipse.gmt.modisco.java.Statement;
+import org.eclipse.gmt.modisco.java.SuperConstructorInvocation;
+import org.eclipse.gmt.modisco.java.SwitchCase;
+import org.eclipse.gmt.modisco.java.SwitchStatement;
+import org.eclipse.gmt.modisco.java.SynchronizedStatement;
+import org.eclipse.gmt.modisco.java.ThrowStatement;
+import org.eclipse.gmt.modisco.java.TryStatement;
+import org.eclipse.gmt.modisco.java.TypeDeclarationStatement;
+import org.eclipse.gmt.modisco.java.VariableDeclarationStatement;
+import org.eclipse.gmt.modisco.java.WhileStatement;
 import org.eclipse.gmt.modisco.java.emf.JavaPackage;
 import org.eclipse.gmt.modisco.omg.kdm.kdm.KdmPackage;
+import org.lpe.common.util.LpeStringUtils;
 import org.palladiosimulator.pcm.repository.RepositoryPackage;
 import org.palladiosimulator.pcm.repository.Signature;
 import org.palladiosimulator.pcm.seff.AbstractAction;
@@ -35,6 +64,7 @@ import util.ResourceDemandingInterval;
 public class FileProcessor {
 	private Resource sourceCodeResource;
 	private SourceCodeDecoratorRepository sourceCodeModel;
+	private List<String> calledMethods;
 	
 	
 	public FileProcessor() {
@@ -124,35 +154,234 @@ public class FileProcessor {
 	}
 	
 	public List<String> getTrace1Methods(String completeMethodName) {
-		ResourceDemandingSEFF searchedSeff = getSeff(completeMethodName);
+		calledMethods = new ArrayList<>();
 		List<MethodLevelSourceCodeLink> mlscls = sourceCodeModel.getMethodLevelSourceCodeLink();
+		String method;
 		for (MethodLevelSourceCodeLink mlscl : mlscls) {
-			List<AbstractMethodInvocation> usages = mlscl.getFunction().getUsages();
-			for (AbstractMethodInvocation usage : usages) {
-				System.out.println(usage.getMethod());
-			}
-			System.out.println();
-		}
-		
-		/*
-		List<String> result = new ArrayList<>();
-		String methodName = extractMethodName(completeMethodName);
-		String className = extractClassName(completeMethodName);
-		List<MethodLevelSourceCodeLink> mlscls = sourceCodeModel.getMethodLevelSourceCodeLink();
-		for (MethodLevelSourceCodeLink mlscl : mlscls) {
-			System.out.println(mlscl.getRepositoryComponent().getEntityName());
-			System.out.println(mlscl.getFunction().getName());
-			List<AbstractMethodInvocation> usages = mlscl.getFunction().getUsages();
-			for (AbstractMethodInvocation usage : usages) {
-				BodyDeclaration bd = (BodyDeclaration) usage;
-				System.out.println(bd.getName());
-				if (usage.getMethod().getName().contains(methodName)) {
-					result.add(extractEntityDefinition(mlscl.getRepositoryComponent().getEntityName()) + "."
-							+ mlscl.getFunction().getName() + "*");
+			method = extractEntityDefinition(mlscl.getRepositoryComponent().getEntityName());
+			method += "." + mlscl.getOperation().getEntityName();
+			if (LpeStringUtils.patternMatches(method, completeMethodName)) {
+				List<Statement> statements = mlscl.getFunction().getBody().getStatements();
+				for (Statement statement : statements) {
+					processStatement(statement);
 				}
 			}
 		}
-		*/
-		return null;
+		return calledMethods;
 	}
+	
+	private void processStatement(Statement statement) {
+		System.out.println(statement);
+		if (statement instanceof TryStatement) {
+			TryStatement ts = (TryStatement) statement;
+			List<Statement> statements = ts.getBody().getStatements();
+			for (Statement s : statements) {
+				processStatement(s);
+			}
+			return;
+		}
+		if (statement instanceof ExpressionStatement) {
+			ExpressionStatement es = (ExpressionStatement) statement;
+			processExpression(es.getExpression());
+			return;
+		}
+		if (statement instanceof IfStatement) {
+			IfStatement is = (IfStatement) statement;
+			processStatement(is.getThenStatement());
+			processStatement(is.getElseStatement());
+			return;
+		}
+		if (statement instanceof Block) {
+			Block b = (Block) statement;
+			List<Statement> ss = b.getStatements();
+			for (Statement s : ss) {
+				processStatement(s);
+			}
+			return;
+		}
+		if (statement instanceof CatchClause) {
+			CatchClause cc = (CatchClause) statement;
+			List<Statement> ss = cc.getBody().getStatements();
+			for (Statement s : ss) {
+				processStatement(s);
+			}
+			return;
+		}
+		if (statement instanceof DoStatement) {
+			DoStatement ds = (DoStatement) statement;
+			processStatement(ds.getBody());
+			processExpression(ds.getExpression());
+			return;
+		}
+		if (statement instanceof EnhancedForStatement) {
+			EnhancedForStatement efs = (EnhancedForStatement) statement;
+			processStatement(efs.getBody());
+			processExpression(efs.getExpression());
+			return;
+		}
+		if (statement instanceof ForStatement) {
+			ForStatement fs = (ForStatement)statement;
+			processStatement(fs.getBody());
+			processExpression(fs.getExpression());
+			return;
+		}
+		if (statement instanceof LabeledStatement) {
+			LabeledStatement ls = (LabeledStatement) statement;
+			processStatement(ls.getBody());
+			return;
+		}
+		if (statement instanceof ReturnStatement) {
+			ReturnStatement rs = (ReturnStatement) statement;
+			processExpression(rs.getExpression());
+			return;
+		}
+		if (statement instanceof SuperConstructorInvocation) {
+			SuperConstructorInvocation sci = (SuperConstructorInvocation) statement;
+			processExpression(sci.getExpression());
+			return;
+		}
+		if (statement instanceof SwitchCase) {
+			SwitchCase sc = (SwitchCase) statement;
+			processExpression(sc.getExpression());
+			return;
+		}
+		if (statement instanceof SwitchStatement) {
+			SwitchStatement ss = (SwitchStatement) statement;
+			processExpression(ss.getExpression());
+			List<Statement> statements = ss.getStatements();
+			for (Statement s : statements) {
+				processStatement(s);
+			}
+			return;
+		}
+		if (statement instanceof SynchronizedStatement) {
+			SynchronizedStatement syn = (SynchronizedStatement) statement;
+			processExpression(syn.getExpression());
+			List<Statement> ss = syn.getBody().getStatements();
+			for (Statement s : ss) {
+				processStatement(s);
+			}
+			return;
+		}
+		if (statement instanceof ThrowStatement) {
+			ThrowStatement ts = (ThrowStatement) statement;
+			processExpression(ts.getExpression());
+			return;
+		}
+		if (statement instanceof WhileStatement) {
+			WhileStatement ws = (WhileStatement) statement;
+			processExpression(ws.getExpression());
+			processStatement(ws.getBody());
+			return;
+		}
+		if (statement instanceof AssertStatement) {
+			AssertStatement as = (AssertStatement) statement;
+			processExpression(as.getExpression());
+			return;
+		}
+		System.out.println("Not supportet Statement: " + statement.toString());
+	}
+	
+	private void processExpression(Expression expression) {
+		System.out.println(expression.toString());
+		if (expression instanceof MethodInvocation) {
+			MethodInvocation mi = (MethodInvocation) expression;
+			String originalCompilationUnitName = null;
+			try {
+				originalCompilationUnitName = mi.getMethod().getOriginalCompilationUnit().getName();
+			} catch (Exception e) {
+				
+			}
+			if (originalCompilationUnitName == null) {
+				return;
+			} else {
+				addMethodToCalledMethods(mi);
+			}
+			return;
+		}
+		if (expression instanceof Assignment) {
+			Assignment a = (Assignment) expression;
+			processExpression(a.getRightHandSide());
+			processExpression(a.getLeftHandSide());
+			return;
+		}
+		if (expression instanceof ArrayInitializer) {
+			ArrayInitializer ai = (ArrayInitializer) expression;
+			List<Expression> es = ai.getExpressions();
+			for (Expression e : es) {
+				processExpression(e);
+			}
+			return;
+		}
+		if (expression instanceof ArrayLengthAccess) {
+			ArrayLengthAccess ala = (ArrayLengthAccess) expression;
+			processExpression(ala.getArray());
+			return;
+		}
+		if (expression instanceof CastExpression) {
+			CastExpression ce = (CastExpression) expression;
+			processExpression(ce.getExpression());
+			return;
+		}
+		if (expression instanceof ClassInstanceCreation) {
+			ClassInstanceCreation cic = (ClassInstanceCreation) expression;
+			processExpression(cic.getExpression());
+			return;
+		}
+		if (expression instanceof ConditionalExpression) {
+			ConditionalExpression ce = (ConditionalExpression) expression;
+			processExpression(ce.getExpression());
+			return;
+		}
+		if (expression instanceof FieldAccess) {
+			FieldAccess fa = (FieldAccess) expression;
+			processExpression(fa.getExpression());
+			return;
+		}
+		//TODO: beginning with InfixExpression
+		if (expression instanceof CastExpression) {
+			CastExpression ce = (CastExpression) expression;
+			processExpression(ce.getExpression());
+		}
+		if (expression instanceof CastExpression) {
+			CastExpression ce = (CastExpression) expression;
+			processExpression(ce.getExpression());
+		}
+		if (expression instanceof CastExpression) {
+			CastExpression ce = (CastExpression) expression;
+			processExpression(ce.getExpression());
+		}
+		if (expression instanceof CastExpression) {
+			CastExpression ce = (CastExpression) expression;
+			processExpression(ce.getExpression());
+		}
+		if (expression instanceof CastExpression) {
+			CastExpression ce = (CastExpression) expression;
+			processExpression(ce.getExpression());
+		}
+		if (expression instanceof CastExpression) {
+			CastExpression ce = (CastExpression) expression;
+			processExpression(ce.getExpression());
+		}
+	}
+	
+	private String removeCompilationUnitEnding(String compilationUnitName) {
+		int dot = compilationUnitName.lastIndexOf(".");
+		return compilationUnitName.substring(0, dot);
+	}
+	
+	private void addMethodToCalledMethods(MethodInvocation methodInvocation) {
+		//TODO: Recusive call on original compilation unit.
+		String result = removeCompilationUnitEnding(methodInvocation.getOriginalCompilationUnit().getName());	
+		result = "*" + result + "." + methodInvocation.getMethod().getName() + "*";
+		if (!calledMethods.contains(result)) {
+			calledMethods.add(result);
+		}
+	}
+	
+	
+	
+	
+	
+	
 }

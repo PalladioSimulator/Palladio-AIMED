@@ -69,6 +69,7 @@ public class ResultCalculator {
 	
 	private void splitMeasurementData(String methodName, List<AbstractRecord> measurementRecords) {
 		measurementsList = new ArrayList<>();
+		List<String> trace1Methods = fileProcessor.getTrace1Methods(methodName);
 		List<ResponseTimeRecord> oneMeasurement = new ArrayList<>();
 		ResponseTimeRecord rtRec;
 		for (AbstractRecord record : measurementRecords) {
