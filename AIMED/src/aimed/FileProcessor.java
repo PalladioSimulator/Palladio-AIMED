@@ -1,9 +1,9 @@
 package aimed;
 
-import java.io.IOException;
-import java.security.acl.Owner;
 import java.util.ArrayList;
 import java.util.List;
+
+import javax.activation.UnsupportedDataTypeException;
 
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.common.util.URI;
@@ -12,13 +12,11 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.emf.ecore.resource.impl.ResourceSetImpl;
 import org.eclipse.emf.ecore.xmi.impl.XMIResourceFactoryImpl;
-import org.eclipse.gmt.modisco.java.AbstractMethodInvocation;
 import org.eclipse.gmt.modisco.java.ArrayInitializer;
 import org.eclipse.gmt.modisco.java.ArrayLengthAccess;
 import org.eclipse.gmt.modisco.java.AssertStatement;
 import org.eclipse.gmt.modisco.java.Assignment;
 import org.eclipse.gmt.modisco.java.Block;
-import org.eclipse.gmt.modisco.java.BodyDeclaration;
 import org.eclipse.gmt.modisco.java.CastExpression;
 import org.eclipse.gmt.modisco.java.CatchClause;
 import org.eclipse.gmt.modisco.java.ClassInstanceCreation;
@@ -30,9 +28,15 @@ import org.eclipse.gmt.modisco.java.ExpressionStatement;
 import org.eclipse.gmt.modisco.java.FieldAccess;
 import org.eclipse.gmt.modisco.java.ForStatement;
 import org.eclipse.gmt.modisco.java.IfStatement;
+import org.eclipse.gmt.modisco.java.InfixExpression;
+import org.eclipse.gmt.modisco.java.InstanceofExpression;
 import org.eclipse.gmt.modisco.java.LabeledStatement;
 import org.eclipse.gmt.modisco.java.MethodInvocation;
+import org.eclipse.gmt.modisco.java.ParenthesizedExpression;
+import org.eclipse.gmt.modisco.java.PostfixExpression;
+import org.eclipse.gmt.modisco.java.PrefixExpression;
 import org.eclipse.gmt.modisco.java.ReturnStatement;
+import org.eclipse.gmt.modisco.java.SingleVariableAccess;
 import org.eclipse.gmt.modisco.java.Statement;
 import org.eclipse.gmt.modisco.java.SuperConstructorInvocation;
 import org.eclipse.gmt.modisco.java.SwitchCase;
@@ -40,26 +44,18 @@ import org.eclipse.gmt.modisco.java.SwitchStatement;
 import org.eclipse.gmt.modisco.java.SynchronizedStatement;
 import org.eclipse.gmt.modisco.java.ThrowStatement;
 import org.eclipse.gmt.modisco.java.TryStatement;
-import org.eclipse.gmt.modisco.java.TypeDeclarationStatement;
+import org.eclipse.gmt.modisco.java.VariableDeclaration;
 import org.eclipse.gmt.modisco.java.VariableDeclarationStatement;
 import org.eclipse.gmt.modisco.java.WhileStatement;
 import org.eclipse.gmt.modisco.java.emf.JavaPackage;
 import org.eclipse.gmt.modisco.omg.kdm.kdm.KdmPackage;
 import org.lpe.common.util.LpeStringUtils;
 import org.palladiosimulator.pcm.repository.RepositoryPackage;
-import org.palladiosimulator.pcm.repository.Signature;
-import org.palladiosimulator.pcm.seff.AbstractAction;
-import org.palladiosimulator.pcm.seff.ExternalCallAction;
-import org.palladiosimulator.pcm.seff.LoopAction;
 import org.palladiosimulator.pcm.seff.ResourceDemandingSEFF;
 import org.somox.sourcecodedecorator.MethodLevelSourceCodeLink;
 import org.somox.sourcecodedecorator.Seff2MethodLink;
 import org.somox.sourcecodedecorator.SourceCodeDecoratorPackage;
 import org.somox.sourcecodedecorator.SourceCodeDecoratorRepository;
-
-import com.strobel.decompiler.ast.Loop;
-
-import util.ResourceDemandingInterval;
 
 public class FileProcessor {
 	private Resource sourceCodeResource;
@@ -163,15 +159,18 @@ public class FileProcessor {
 			if (LpeStringUtils.patternMatches(method, completeMethodName)) {
 				List<Statement> statements = mlscl.getFunction().getBody().getStatements();
 				for (Statement statement : statements) {
-					processStatement(statement);
+					try {
+						processStatement(statement);
+					} catch (UnsupportedDataTypeException e) {
+						e.printStackTrace();
+					}
 				}
 			}
 		}
 		return calledMethods;
 	}
 	
-	private void processStatement(Statement statement) {
-		System.out.println(statement);
+	private void processStatement(Statement statement) throws UnsupportedDataTypeException {
 		if (statement instanceof TryStatement) {
 			TryStatement ts = (TryStatement) statement;
 			List<Statement> statements = ts.getBody().getStatements();
@@ -279,11 +278,13 @@ public class FileProcessor {
 			processExpression(as.getExpression());
 			return;
 		}
-		System.out.println("Not supportet Statement: " + statement.toString());
+		if (statement instanceof VariableDeclarationStatement) {
+			return;
+		}
+		throw new UnsupportedDataTypeException("Not supportet Statement: " + statement.toString());
 	}
 	
-	private void processExpression(Expression expression) {
-		System.out.println(expression.toString());
+	private void processExpression(Expression expression) throws UnsupportedDataTypeException {
 		if (expression instanceof MethodInvocation) {
 			MethodInvocation mi = (MethodInvocation) expression;
 			String originalCompilationUnitName = null;
@@ -338,31 +339,36 @@ public class FileProcessor {
 			processExpression(fa.getExpression());
 			return;
 		}
-		//TODO: beginning with InfixExpression
-		if (expression instanceof CastExpression) {
-			CastExpression ce = (CastExpression) expression;
-			processExpression(ce.getExpression());
+		if (expression instanceof InfixExpression) {
+			InfixExpression ie = (InfixExpression) expression;
+			processExpression(ie.getLeftOperand());
+			processExpression(ie.getRightOperand());
+			return;
 		}
-		if (expression instanceof CastExpression) {
-			CastExpression ce = (CastExpression) expression;
-			processExpression(ce.getExpression());
+		if (expression instanceof InstanceofExpression) {
+			InstanceofExpression ie = (InstanceofExpression) expression;
+			processExpression(ie.getLeftOperand());
+			return;
 		}
-		if (expression instanceof CastExpression) {
-			CastExpression ce = (CastExpression) expression;
-			processExpression(ce.getExpression());
+		if (expression instanceof ParenthesizedExpression) {
+			ParenthesizedExpression pe = (ParenthesizedExpression) expression;
+			processExpression(pe.getExpression());
+			return;
 		}
-		if (expression instanceof CastExpression) {
-			CastExpression ce = (CastExpression) expression;
-			processExpression(ce.getExpression());
+		if (expression instanceof PostfixExpression) {
+			PostfixExpression pe = (PostfixExpression) expression;
+			processExpression(pe.getOperand());
+			return;
 		}
-		if (expression instanceof CastExpression) {
-			CastExpression ce = (CastExpression) expression;
-			processExpression(ce.getExpression());
+		if (expression instanceof PrefixExpression) {
+			PrefixExpression pe = (PrefixExpression) expression;
+			processExpression(pe.getOperand());
+			return;
 		}
-		if (expression instanceof CastExpression) {
-			CastExpression ce = (CastExpression) expression;
-			processExpression(ce.getExpression());
+		if (expression instanceof SingleVariableAccess) {
+			return;
 		}
+		throw new UnsupportedDataTypeException("Not supportet Expression: " + expression.toString());
 	}
 	
 	private String removeCompilationUnitEnding(String compilationUnitName) {
@@ -372,7 +378,7 @@ public class FileProcessor {
 	
 	private void addMethodToCalledMethods(MethodInvocation methodInvocation) {
 		//TODO: Recusive call on original compilation unit.
-		String result = removeCompilationUnitEnding(methodInvocation.getOriginalCompilationUnit().getName());	
+		String result = removeCompilationUnitEnding(methodInvocation.getMethod().getOriginalCompilationUnit().getName());	
 		result = "*" + result + "." + methodInvocation.getMethod().getName() + "*";
 		if (!calledMethods.contains(result)) {
 			calledMethods.add(result);

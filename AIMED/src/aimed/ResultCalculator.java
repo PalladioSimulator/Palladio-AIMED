@@ -58,7 +58,7 @@ public class ResultCalculator {
 
 	public void calculateResourceDemand(String methodName, MeasurementData data) {
 		this.methodName = methodName;
-		splitMeasurementData(methodName, data.getRecords());
+		splitMeasurementDataOnlyTrace1Methods(methodName, data.getRecords());
 		ResourceDemandingSEFF seff = fileProcessor.getSeff(methodName);
 		Map<InternalAction, ResourceDemandingInterval> intervals = getResourceDemandingIntervals(seff);
 		prevTimeStamps = new LinkedList<>();
@@ -67,20 +67,32 @@ public class ResultCalculator {
 		}
 	}
 	
-	private void splitMeasurementData(String methodName, List<AbstractRecord> measurementRecords) {
+	private void splitMeasurementDataOnlyTrace1Methods(String methodName, List<AbstractRecord> measurementRecords) {
 		measurementsList = new ArrayList<>();
 		List<String> trace1Methods = fileProcessor.getTrace1Methods(methodName);
 		List<ResponseTimeRecord> oneMeasurement = new ArrayList<>();
 		ResponseTimeRecord rtRec;
 		for (AbstractRecord record : measurementRecords) {
 			rtRec = (ResponseTimeRecord) record;
-			oneMeasurement.add(rtRec);
 			if (LpeStringUtils.patternMatches(rtRec.getOperation(), methodName)) {
 				//TODO: Add only if is trace 1 method.
+				oneMeasurement.add(rtRec);
 				measurementsList.add(oneMeasurement);
 				oneMeasurement = new ArrayList<>();
 			}
+			if (isTrace1Method(rtRec.getOperation(), trace1Methods)) {
+				oneMeasurement.add(rtRec);
+			}
 		}
+	}
+	
+	private boolean isTrace1Method(String operation, List<String> trace1Methods) {
+		for (String method : trace1Methods) {
+			if (LpeStringUtils.patternMatches(operation, method)) {
+				return true;
+			}
+		}
+		return false;
 	}
 	
 	private Map<InternalAction, ResourceDemandingInterval> getResourceDemandingIntervals(ResourceDemandingSEFF seff) {
