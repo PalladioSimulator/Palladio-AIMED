@@ -37,7 +37,7 @@ public class ResultCalculator {
 	private FileProcessor fileProcessor;
 	private Amount<Frequency> throughputCpu = Amount.valueOf(0, SI.HERTZ);
 	private Amount<Frequency> throughputHdd = Amount.valueOf(0, SI.HERTZ);
-	private Map<InternalAction, Set<Long>> responseTimesPerInternalAction;
+	private Map<InternalAction, Set<Amount<Duration>>> responseTimesPerInternalAction;
 	private LinkedList<Amount<Duration>> prevTimeStamps;
 
 	public ResultCalculator() {
@@ -183,13 +183,11 @@ public class ResultCalculator {
 	}
 	
 	private void calculateResponseTimes(InternalAction ia, ResourceDemandingInterval rdi) {
-		Set<Long> resourceDemands = new HashSet<>();
-		Amount<Duration> responseTime;
+		Set<Amount<Duration>> responseTimes = new HashSet<>();
 		for (List<ResponseTimeRecord> records : measurementsList) {
-			responseTime = getResponseTimePerRecord(rdi, records);
-			resourceDemands.add(responseTime.getExactValue() * throughputCpu.getExactValue());
+			responseTimes.add(getResponseTimePerRecord(rdi, records));	
 		}
-		responseTimesPerInternalAction.put(ia, resourceDemands);
+		responseTimesPerInternalAction.put(ia, responseTimes);
 	}
 	
 	private Amount<Duration> getResponseTimePerRecord(ResourceDemandingInterval rdi, List<ResponseTimeRecord> records) {
