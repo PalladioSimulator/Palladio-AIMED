@@ -12,6 +12,7 @@ import java.util.Properties;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import javax.measure.quantity.Dimensionless;
 import javax.measure.quantity.Duration;
 import javax.measure.unit.SI;
 
@@ -35,6 +36,7 @@ import messages.ConnectionStateMessage;
 import messages.MeasurementState;
 import messages.MeasurementStateMessage;
 import messages.ResultMessage;
+import util.CostumUnits;
 
 public class AimedMainController extends Observable implements Observer {
 	private static AimedMainController instance = null;
@@ -58,6 +60,10 @@ public class AimedMainController extends Observable implements Observer {
 
 	private AimedMainController() {
 		loadWorkloadAdapter();
+		//CostumUnits test = CostumUnits.getInstance();
+		//Amount<Dimensionless> processingRate = Amount.valueOf(1, CostumUnits.ProcessingRate);
+		//Amount<Duration> bla = Amount.valueOf(100000000, SI.NANO(SI.SECOND)).times(Amount.valueOf(1, CostumUnits.ProcessingRate));
+		//System.out.println(processingRate);
 	}
 	
 	public void loadResources(String sourceCodeDecoratorFilePath) {

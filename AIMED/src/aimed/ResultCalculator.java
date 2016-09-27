@@ -29,15 +29,16 @@ import org.palladiosimulator.pcm.seff.ResourceDemandingSEFF;
 import org.palladiosimulator.pcm.seff.StartAction;
 import org.palladiosimulator.pcm.seff.StopAction;
 
+import util.CostumUnits;
+import util.RAdapter;
 import util.ResourceDemandingInterval;
 
 public class ResultCalculator {
 	private List<List<ResponseTimeRecord>> measurementsList;
 	private String methodName;
 	private FileProcessor fileProcessor;
-	private Amount<Frequency> throughputCpu = Amount.valueOf(0, SI.HERTZ);
-	private Amount<Frequency> throughputHdd = Amount.valueOf(0, SI.HERTZ);
-	private Map<InternalAction, Set<Amount<Duration>>> responseTimesPerInternalAction;
+	private long processingRateCpu = 1;
+	private Map<InternalAction, Set<Long>> responseTimesPerInternalAction;
 	private LinkedList<Amount<Duration>> prevTimeStamps;
 
 	public ResultCalculator() {
@@ -46,14 +47,6 @@ public class ResultCalculator {
 
 	public void setFileProcessor(FileProcessor fileProcessor) {
 		this.fileProcessor = fileProcessor;
-	}
-	
-	public void setCPUThrougput(Amount<Frequency> throughputCpu) {
-		this.throughputCpu = throughputCpu;
-	}
-	
-	public void setHDDThroughput(Amount<Frequency> throughputHdd) {
-		this.throughputHdd = throughputHdd;
 	}
 
 	public void calculateResourceDemand(String methodName, MeasurementData data) {
@@ -65,6 +58,10 @@ public class ResultCalculator {
 		for (InternalAction ia : intervals.keySet()) {
 			calculateResponseTimes(ia, intervals.get(ia));
 		}
+		RAdapter rAdapter = new RAdapter("");
+		rAdapter.doublePDF("C:\\Users\\Cel\\Studium\\Bachelor\\Vorbereitung\\AnalyzingTimeSeriesWithR\\record.csv");
+		
+		System.out.println();
 	}
 	
 	private void splitMeasurementDataOnlyTrace1Methods(String methodName, List<AbstractRecord> measurementRecords) {
@@ -183,11 +180,15 @@ public class ResultCalculator {
 	}
 	
 	private void calculateResponseTimes(InternalAction ia, ResourceDemandingInterval rdi) {
-		Set<Amount<Duration>> responseTimes = new HashSet<>();
+		Set<Long> resourceDemands = new HashSet<>();
+		Amount<Duration> responseTime;
+		Long resourceDemand;
 		for (List<ResponseTimeRecord> records : measurementsList) {
-			responseTimes.add(getResponseTimePerRecord(rdi, records));	
+			responseTime = getResponseTimePerRecord(rdi, records);
+			resourceDemand = responseTime.getExactValue() * processingRateCpu;
+			resourceDemands.add(resourceDemand);
 		}
-		responseTimesPerInternalAction.put(ia, responseTimes);
+		responseTimesPerInternalAction.put(ia, resourceDemands);
 	}
 	
 	private Amount<Duration> getResponseTimePerRecord(ResourceDemandingInterval rdi, List<ResponseTimeRecord> records) {

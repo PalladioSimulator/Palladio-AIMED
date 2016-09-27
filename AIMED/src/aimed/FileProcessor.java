@@ -21,6 +21,7 @@ import org.eclipse.gmt.modisco.java.CastExpression;
 import org.eclipse.gmt.modisco.java.CatchClause;
 import org.eclipse.gmt.modisco.java.ClassInstanceCreation;
 import org.eclipse.gmt.modisco.java.ConditionalExpression;
+import org.eclipse.gmt.modisco.java.ContinueStatement;
 import org.eclipse.gmt.modisco.java.DoStatement;
 import org.eclipse.gmt.modisco.java.EnhancedForStatement;
 import org.eclipse.gmt.modisco.java.Expression;
@@ -32,6 +33,7 @@ import org.eclipse.gmt.modisco.java.InfixExpression;
 import org.eclipse.gmt.modisco.java.InstanceofExpression;
 import org.eclipse.gmt.modisco.java.LabeledStatement;
 import org.eclipse.gmt.modisco.java.MethodInvocation;
+import org.eclipse.gmt.modisco.java.NumberLiteral;
 import org.eclipse.gmt.modisco.java.ParenthesizedExpression;
 import org.eclipse.gmt.modisco.java.PostfixExpression;
 import org.eclipse.gmt.modisco.java.PrefixExpression;
@@ -281,6 +283,9 @@ public class FileProcessor {
 		if (statement instanceof VariableDeclarationStatement) {
 			return;
 		}
+		if (statement instanceof ContinueStatement) {
+			return;
+		}
 		throw new UnsupportedDataTypeException("Not supportet Statement: " + statement.toString());
 	}
 	
@@ -366,6 +371,9 @@ public class FileProcessor {
 			return;
 		}
 		if (expression instanceof SingleVariableAccess) {
+			return;
+		}
+		if (expression instanceof NumberLiteral) {
 			return;
 		}
 		throw new UnsupportedDataTypeException("Not supportet Expression: " + expression.toString());
