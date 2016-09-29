@@ -2,7 +2,7 @@ iqr<-function(x){ return(diff(quantile(x,c(.25,.75),na.rm=T))) }
 
 dhist<-function(x, a=5*iqr(x),
 	nbins=nclass.Sturges(x), rx = range(x,na.rm=T),
-	eps=.15, xlab = "x", plot = T,lab.spikes=T)
+	eps=.15, xlab = "x", plot = FALSE,lab.spikes=T)
 {
 
 #x is the data
@@ -96,7 +96,7 @@ if(is.character(nbins))
 		cut.pt <- unique(c(min(x) - abs(min(x))/1000, approx(seq(length(
 			x)), x, (1:(nbins - 1)) * bin.size, rule = 2)$y, max(
 			x)))
-		aa <- hist(x, breaks = cut.pt, plot = T, probability = T)
+		aa <- hist(x, breaks = cut.pt, plot = FALSE, probability = T)
 	if(a == Inf) {
 		heights <- aa$counts
 		xbr <- aa$breaks
