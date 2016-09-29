@@ -1,6 +1,5 @@
 package aimed;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -12,21 +11,13 @@ import java.util.Properties;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import javax.measure.quantity.Dimensionless;
-import javax.measure.quantity.Duration;
-import javax.measure.unit.SI;
-
 import org.aim.aiminterface.IAdaptiveInstrumentation;
-import org.aim.aiminterface.entities.measurements.AbstractRecord;
 import org.aim.aiminterface.entities.measurements.MeasurementData;
 import org.aim.artifacts.client.JMXAdaptiveInstrumentationClient;
-import org.aim.artifacts.records.ResponseTimeRecord;
-import org.jscience.physics.amount.Amount;
 import org.lpe.common.config.GlobalConfiguration;
 import org.lpe.common.extension.ExtensionRegistry;
 import org.lpe.common.extension.IExtension;
 import org.lpe.common.extension.IExtensionRegistry;
-import org.lpe.common.util.LpeStringUtils;
 import org.palladiosimulator.pcm.seff.ResourceDemandingSEFF;
 import org.spotter.core.workload.AbstractWorkloadAdapter;
 import org.spotter.core.workload.IWorkloadAdapter;
@@ -35,7 +26,6 @@ import org.spotter.exceptions.WorkloadException;
 import messages.ConnectionStateMessage;
 import messages.MeasurementState;
 import messages.MeasurementStateMessage;
-import messages.ResultMessage;
 import util.CostumUnits;
 
 public class AimedMainController extends Observable implements Observer {
@@ -178,33 +168,7 @@ public class AimedMainController extends Observable implements Observer {
 		runner.addObserver(this);
 		return runner;
 	}
-	
-	private long calculateResponseTimeOfMethod(String completeMethodName, List<String> trace1Methods, MeasurementData measurementData) {
-		long investigatedResponseTime = calculateMethodAverage(completeMethodName, measurementData);
-		for (String method : trace1Methods) {
-			investigatedResponseTime -= calculateMethodAverage(method, measurementData);
-		}
-		return investigatedResponseTime;
-	}
-	
-	private long calculateMethodAverage(String methodPattern, MeasurementData measurementData) {
-		List<AbstractRecord> records = measurementData.getRecords();
-		long sum = 0;
-		long patternsFound = 0;
-		ResponseTimeRecord rtRec;
-		for(AbstractRecord rec : records) {
-			rtRec = (ResponseTimeRecord)rec;
-			if(LpeStringUtils.patternMatches(rtRec.getOperation(), methodPattern)) {
-				sum += rtRec.getResponseTime();
-				patternsFound++;
-			}
-		}
-		if (patternsFound == 0) {
-			return -1;
-		}
-		return sum / patternsFound;
-	}
-	
+		
 	public void appendResults(String pattern, MeasurementData measurementData) {
 		results.put(pattern, measurementData);
 	}
@@ -212,50 +176,13 @@ public class AimedMainController extends Observable implements Observer {
 	private void createResults() {
 		ResultCalculator resultCalc = new ResultCalculator();
 		resultCalc.setFileProcessor(fileProcessor);
-		//TODO: Remove hard-coded throughput.
-		resultCalc.setCPUThrougput(Amount.valueOf(2.4, SI.GIGA(SI.HERTZ)));
 		for (String method : results.keySet()) {
 			notifyObservers(new MeasurementStateMessage(MeasurementState.CALCULATING, String.format("Now calculating results for %s.", method)));
 			resultCalc.calculateResourceDemand(method, results.get(method));
 		}
-		String completeMethodName;
-		List<String> traceMethods;
-		List<String> resultLines = new ArrayList<>();
-		long responseTime;
-		for (String pattern : results.keySet()) {
-			completeMethodName = getCompleteNameOfInvestigatedMethod(pattern, results.get(pattern));
-			traceMethods = getTraceMethodsOfInvestigatedMethod(pattern, results.get(pattern));
-			responseTime = calculateResponseTimeOfMethod(completeMethodName, traceMethods, results.get(pattern));
-			resultLines.add(pattern + ": " + String.valueOf(responseTime) + " ns");
-		}
+		/*
 		notifyObservers(new ResultMessage(resultLines));
-	}
-	
-	private String getCompleteNameOfInvestigatedMethod(String methodPattern, MeasurementData measurementData) {
-		List<AbstractRecord> records = measurementData.getRecords();
-		ResponseTimeRecord rtRec;
-		for (AbstractRecord rec : records) {
-			rtRec = (ResponseTimeRecord)rec;
-			if (LpeStringUtils.patternMatches(rtRec.getOperation(), methodPattern)) {
-				return rtRec.getOperation();
-			}
-		}
-		return "";
-	}
-	
-	private List<String> getTraceMethodsOfInvestigatedMethod(String methodPattern, MeasurementData measurementData) {
-		List<String> traceMethods = new ArrayList<>();
-		List<AbstractRecord> records = measurementData.getRecords();
-		ResponseTimeRecord rtRec;
-		for (AbstractRecord rec : records) {
-			rtRec = (ResponseTimeRecord)rec;
-			if ( ! LpeStringUtils.patternMatches(rtRec.getOperation(), methodPattern)) {
-				if (!traceMethods.contains(rtRec.getOperation())) {
-					traceMethods.add(rtRec.getOperation());
-				}
-			}
-		}
-		return traceMethods;
+		*/
 	}
 
 	@Override

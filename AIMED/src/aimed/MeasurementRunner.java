@@ -81,7 +81,7 @@ public class MeasurementRunner extends Observable implements Runnable {
 		// Caused by the single user approach
 		loadConfig.setNumUsers(1);
 		loadConfig.setRampUpUsersPerInterval(1);
-		loadConfig.setRampUpIntervalLength(0);
+		loadConfig.setRampUpIntervalLength(1);
 		loadConfig.setExperimentDuration(workloadDurationInS);
 		loadConfig.setCoolDownIntervalLength(5);
 		loadConfig.setCoolDownUsersPerInterval(1);
