@@ -1,5 +1,7 @@
 package aimed;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -19,15 +21,21 @@ import org.aim.artifacts.records.NanoResponseTimeRecord;
 import org.aim.artifacts.records.ResponseTimeRecord;
 import org.jscience.physics.amount.Amount;
 import org.lpe.common.util.LpeStringUtils;
+import org.palladiosimulator.pcm.core.PCMRandomVariable;
+import org.palladiosimulator.pcm.core.impl.PCMRandomVariableImpl;
+import org.palladiosimulator.pcm.resourcetype.ProcessingResourceType;
 import org.palladiosimulator.pcm.seff.AbstractAction;
 import org.palladiosimulator.pcm.seff.AbstractBranchTransition;
 import org.palladiosimulator.pcm.seff.BranchAction;
 import org.palladiosimulator.pcm.seff.ExternalCallAction;
 import org.palladiosimulator.pcm.seff.InternalAction;
 import org.palladiosimulator.pcm.seff.LoopAction;
+import org.palladiosimulator.pcm.seff.ResourceDemandingBehaviour;
 import org.palladiosimulator.pcm.seff.ResourceDemandingSEFF;
 import org.palladiosimulator.pcm.seff.StartAction;
 import org.palladiosimulator.pcm.seff.StopAction;
+import org.palladiosimulator.pcm.seff.impl.ResourceDemandingBehaviourImpl;
+import org.palladiosimulator.pcm.seff.seff_performance.ParametricResourceDemand;
 
 import util.CostumUnits;
 import util.RAdapter;
@@ -38,11 +46,11 @@ public class ResultCalculator {
 	private String methodName;
 	private FileProcessor fileProcessor;
 	private long processingRateCpu = 1;
-	private Map<InternalAction, Set<Long>> responseTimesPerInternalAction;
+	private Map<InternalAction, Set<Long>> resourceDemandPerInternalAction;
 	private LinkedList<Amount<Duration>> prevTimeStamps;
 
 	public ResultCalculator() {
-		responseTimesPerInternalAction = new HashMap<>();
+		resourceDemandPerInternalAction = new HashMap<>();
 	}
 
 	public void setFileProcessor(FileProcessor fileProcessor) {
@@ -58,10 +66,30 @@ public class ResultCalculator {
 		for (InternalAction ia : intervals.keySet()) {
 			calculateResponseTimes(ia, intervals.get(ia));
 		}
-		RAdapter rAdapter = new RAdapter("");
-		rAdapter.doublePDF("C:\\Users\\Cel\\Studium\\Bachelor\\Vorbereitung\\AnalyzingTimeSeriesWithR\\record.csv");
-		
+		RAdapter rAdapter = new RAdapter();
+		rAdapter.connect();
+		String doublePDF;
+		for (InternalAction ia : resourceDemandPerInternalAction.keySet()) {
+			Set<Long> bla = resourceDemandPerInternalAction.get(ia);
+			doublePDF = rAdapter.doublePDF(bla);
+			writeResourceDemandToInternalAction(ia, doublePDF);
+		}
+		rAdapter.disconnect();
 		System.out.println();
+	}
+	
+	private void writeResourceDemandToInternalAction(InternalAction ia, String resourceDemand) {
+		System.out.println(fileProcessor.isModified());
+		List<ParametricResourceDemand> prds = ia.getResourceDemand_Action();
+		PCMRandomVariable prv;
+		for (ParametricResourceDemand prd : prds) {
+			prv = prd.getSpecification_ParametericResourceDemand();
+			prv.setSpecification(resourceDemand);
+			prd.setSpecification_ParametericResourceDemand(prv);
+		}
+		//TODO: Wie weiter?
+		System.out.println(fileProcessor.isModified());
+		fileProcessor.saveResource();
 	}
 	
 	private void splitMeasurementDataOnlyTrace1Methods(String methodName, List<AbstractRecord> measurementRecords) {
@@ -188,7 +216,7 @@ public class ResultCalculator {
 			resourceDemand = responseTime.getExactValue() * processingRateCpu;
 			resourceDemands.add(resourceDemand);
 		}
-		responseTimesPerInternalAction.put(ia, resourceDemands);
+		resourceDemandPerInternalAction.put(ia, resourceDemands);
 	}
 	
 	private Amount<Duration> getResponseTimePerRecord(ResourceDemandingInterval rdi, List<ResponseTimeRecord> records) {

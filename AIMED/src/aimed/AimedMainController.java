@@ -23,10 +23,8 @@ import org.spotter.core.workload.AbstractWorkloadAdapter;
 import org.spotter.core.workload.IWorkloadAdapter;
 import org.spotter.exceptions.WorkloadException;
 
-import messages.ConnectionStateMessage;
-import messages.MeasurementState;
-import messages.MeasurementStateMessage;
-import util.CostumUnits;
+import messages.*;
+
 
 public class AimedMainController extends Observable implements Observer {
 	private static AimedMainController instance = null;

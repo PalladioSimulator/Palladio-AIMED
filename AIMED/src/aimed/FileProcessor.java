@@ -1,5 +1,6 @@
 package aimed;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -78,6 +79,8 @@ public class FileProcessor {
 		URI sourceCodeDecoratorUri = URI.createFileURI(sourceCodeDecoratorFilePath);	
 		try {
 			sourceCodeResource = rs.getResource(sourceCodeDecoratorUri, true);
+			//TODO: Remove this, its just for debugging.
+			sourceCodeResource.setTrackingModification(true);
 			sourceCodeModel =  (SourceCodeDecoratorRepository) sourceCodeResource.getContents().get(0);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -149,6 +152,18 @@ public class FileProcessor {
 			}
 		}
 		throw new IndexOutOfBoundsException(String.format("Seff for method %s not found.", completeMethodName));
+	}
+	
+	public void saveResource() {
+		try {
+			sourceCodeResource.save(null);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public boolean isModified() {
+		return sourceCodeResource.isModified();
 	}
 	
 	public List<String> getTrace1Methods(String completeMethodName) {
