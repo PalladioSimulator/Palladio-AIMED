@@ -45,6 +45,7 @@ public class ResultCalculator {
 	private List<List<ResponseTimeRecord>> measurementsList;
 	private String methodName;
 	private FileProcessor fileProcessor;
+	private RAdapter rAdapter;
 	private long processingRateCpu = 1;
 	private Map<InternalAction, Set<Long>> resourceDemandPerInternalAction;
 	private LinkedList<Amount<Duration>> prevTimeStamps;
@@ -56,6 +57,10 @@ public class ResultCalculator {
 	public void setFileProcessor(FileProcessor fileProcessor) {
 		this.fileProcessor = fileProcessor;
 	}
+	
+	public void setRAdapter(RAdapter rAdapter) {
+		this.rAdapter = rAdapter;
+	}
 
 	public void calculateResourceDemand(String methodName, MeasurementData data) {
 		this.methodName = methodName;
@@ -66,15 +71,13 @@ public class ResultCalculator {
 		for (InternalAction ia : intervals.keySet()) {
 			calculateResponseTimes(ia, intervals.get(ia));
 		}
-		RAdapter rAdapter = new RAdapter();
-		rAdapter.connect();
+		rAdapter.loadDefaultDhistSource();
 		String doublePDF;
 		for (InternalAction ia : resourceDemandPerInternalAction.keySet()) {
 			Set<Long> bla = resourceDemandPerInternalAction.get(ia);
 			doublePDF = rAdapter.doublePDF(bla);
 			writeResourceDemandToInternalAction(ia, doublePDF);
 		}
-		rAdapter.disconnect();
 		System.out.println();
 	}
 	

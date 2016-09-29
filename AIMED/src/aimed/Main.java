@@ -6,10 +6,12 @@ import java.util.List;
 import javafx.application.Application;
 import javafx.event.EventHandler;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 import javafx.scene.Scene;
 import javafx.scene.layout.BorderPane;
 import javafx.fxml.FXMLLoader;
-import javafx.scene.input.MouseEvent;
+
+import util.Config;
 
 
 public class Main extends Application {
@@ -22,6 +24,14 @@ public class Main extends Application {
 			primaryStage.setScene(scene);
 			primaryStage.setTitle("AIMED - AIM for estimating demands");
 			primaryStage.show();
+			primaryStage.setOnCloseRequest(new EventHandler<WindowEvent>() {
+				@Override
+				public void handle(WindowEvent event) {
+					Config.getInstance().saveConfig();
+					AimedMainController.getInstance().disconnectFromAIM();
+					AimedMainController.getInstance().disconnectFromRserve();
+				}				
+			});
 		} catch(Exception e) {
 			e.printStackTrace();
 		}

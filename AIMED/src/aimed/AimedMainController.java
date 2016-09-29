@@ -14,16 +14,19 @@ import java.util.concurrent.Future;
 import org.aim.aiminterface.IAdaptiveInstrumentation;
 import org.aim.aiminterface.entities.measurements.MeasurementData;
 import org.aim.artifacts.client.JMXAdaptiveInstrumentationClient;
+import org.codehaus.jackson.map.DeserializerFactory.Config;
 import org.lpe.common.config.GlobalConfiguration;
 import org.lpe.common.extension.ExtensionRegistry;
 import org.lpe.common.extension.IExtension;
 import org.lpe.common.extension.IExtensionRegistry;
 import org.palladiosimulator.pcm.seff.ResourceDemandingSEFF;
+import org.rosuda.REngine.Rserve.RserveException;
 import org.spotter.core.workload.AbstractWorkloadAdapter;
 import org.spotter.core.workload.IWorkloadAdapter;
 import org.spotter.exceptions.WorkloadException;
 
 import messages.*;
+import util.RAdapter;
 
 
 public class AimedMainController extends Observable implements Observer {
@@ -38,6 +41,10 @@ public class AimedMainController extends Observable implements Observer {
 	private AbstractWorkloadAdapter selectedWorkloadAdapter;
 	
 	private FileProcessor fileProcessor;
+	
+	private RAdapter rAdapter;
+	
+	private Future<?> measurementThreadPool = null;
 
 	public static synchronized AimedMainController getInstance() {
 		if (instance == null) {
@@ -102,14 +109,14 @@ public class AimedMainController extends Observable implements Observer {
 		return workloadExtensions;
 	}
 
-	public boolean connectToMainagent(String host, String port) {
+	public boolean connectToAIM(String host, String port) {
 		if (host.isEmpty() || host == null || port.isEmpty() || port == null) {
-			notifyObservers(new ConnectionStateMessage("Host or port is empty."));
+			notifyObservers(new ConnectionStateMessage("Host or port for the connection to AIM is empty."));
 			return false;
 		}
 		try {
 			if (!JMXAdaptiveInstrumentationClient.testConnection(host, port)) {
-				notifyObservers(new ConnectionStateMessage(String.format("Can't connect to %s:%s", host, port)));
+				notifyObservers(new ConnectionStateMessage(String.format("Can't connect to AIM on %s:%s", host, port)));
 				return false;
 			}
 			instrumentationClient = new JMXAdaptiveInstrumentationClient(host, port);
@@ -118,7 +125,7 @@ public class AimedMainController extends Observable implements Observer {
 		return instrumentationClient.testConnection();
 	}
 	
-	public boolean isConnected() {
+	public boolean isConnectedToAIM() {
 		if (instrumentationClient == null) {
 			return false;
 		} else {
@@ -126,14 +133,46 @@ public class AimedMainController extends Observable implements Observer {
 		}
 	}
 	
-	public void disconnectFromMainagent() {
+	public void disconnectFromAIM() {
 		try {
-		instrumentationClient.disableMonitoring();
-		instrumentationClient.uninstrument();
+			if (instrumentationClient != null) {
+				instrumentationClient.disableMonitoring();
+				instrumentationClient.uninstrument();				
+			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		instrumentationClient = null;
+	}
+	
+	public boolean connectToRserve(String host, String port) {
+		if (host.isEmpty() || host == null || port.isEmpty() || port == null) {
+			notifyObservers(new ConnectionStateMessage("Host or port for the connection to Rserve is empty."));
+			return false;
+		}
+		try {
+			if (rAdapter == null) {
+				rAdapter = new RAdapter();
+			}
+			rAdapter.connect(host, Integer.parseInt(port));		
+			return rAdapter.isConnected();	
+		} catch (RserveException e) {
+			notifyObservers(new ConnectionStateMessage(String.format("Can't connect to Rserve on %s:%s", host, port)));
+		}
+		return false;
+	}
+	
+	public boolean isConnectedToRserve() {
+		if (rAdapter == null) {
+			return false;
+		}
+		return rAdapter.isConnected();
+	}
+	
+	public void disconnectFromRserve() {
+		if (rAdapter != null) {
+			rAdapter.disconnect();
+		}
 	}
 	
 	public void startMeasurement(
@@ -151,7 +190,7 @@ public class AimedMainController extends Observable implements Observer {
 		methodPatterns = newMethodPatterns;
 		notifyObservers(new MeasurementStateMessage(MeasurementState.STARTING, "Warming up..."));
 		MeasurementRunner runner = createRunnableMeasurement(warmupDurationInS, measurementDurationInS, methodPatterns);
-		Future<?> future = Executors.newCachedThreadPool().submit(runner);
+		measurementThreadPool = Executors.newCachedThreadPool().submit(runner);
 	}
 
 	private MeasurementRunner createRunnableMeasurement(final int warmupDurationInS, final int measurementDurationInS,
@@ -172,8 +211,12 @@ public class AimedMainController extends Observable implements Observer {
 	}
 
 	private void createResults() {
+		if (measurementThreadPool != null) {
+			measurementThreadPool.cancel(true);
+		}
 		ResultCalculator resultCalc = new ResultCalculator();
 		resultCalc.setFileProcessor(fileProcessor);
+		resultCalc.setRAdapter(rAdapter);
 		for (String method : results.keySet()) {
 			notifyObservers(new MeasurementStateMessage(MeasurementState.CALCULATING, String.format("Now calculating results for %s.", method)));
 			resultCalc.calculateResourceDemand(method, results.get(method));

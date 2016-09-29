@@ -35,12 +35,14 @@ import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TitledPane;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.web.WebView;
 import javafx.stage.FileChooser;
@@ -48,6 +50,7 @@ import messages.ConnectionStateMessage;
 import messages.MeasurementState;
 import messages.MeasurementStateMessage;
 import messages.ResultMessage;
+import util.Config;
 
 public class GuiController implements Initializable, Observer {	
 	@FXML
@@ -57,13 +60,13 @@ public class GuiController implements Initializable, Observer {
 	private TitledPane pane1, pane2, pane3, pane4, pane5;
 	
 	@FXML
-	private TextField hostTextField, portTextField, warmupDuration, measurementDuration, resourcePathTextField;
+	private TextField aimHostTextField, aimPortTextField, rserveHostTextField, rservePortTextField, warmupDuration, measurementDuration, resourcePathTextField;
 	
 	@FXML
 	private Label labelConnectState, labelMeasurementState;
 	
 	@FXML
-	private Button connectButton, runMeasurementButton, resourceSelectButton, resourceLoadButton, resourceSelectAllButton, resourceDeselectAllButton;
+	private Button aimConnectButton, rserveConnectButton, runMeasurementButton, resourceSelectButton, resourceLoadButton, resourceSelectAllButton, resourceDeselectAllButton;
 	
 	@FXML
 	private WebView webViewResults;
@@ -77,62 +80,89 @@ public class GuiController implements Initializable, Observer {
 	private StringProperty connectionState = new SimpleStringProperty("Connect");
 	private StringProperty measurementState = new SimpleStringProperty();
 	
+	private final static Config config = Config.getInstance();
+	
 	private AimedMainController aimed = AimedMainController.getInstance();
 	
 	@Override
 	public void initialize(URL location, ResourceBundle resources) {
 		aimed.addObserver(this);
+		loadConfig();
+		addConfigListener();
 		accordion.setExpandedPane(pane1);
-		connectButton.setOnMouseClicked(new EventHandler<MouseEvent>() {
-			@Override
-			public void handle(MouseEvent arg0) {
-				onConnectButtonClicked();				
-			}
+		aimConnectButton.setOnMouseClicked(me -> {
+			onAimConnectButtonClicked();
+		});
+		rserveConnectButton.setOnMouseClicked(me -> {
+			onRserveConnectButtonClicked();
 		});
 		labelConnectState.textProperty().bind(connectionState);
 		runMeasurementButton.setDisable(true);
-		runMeasurementButton.setOnMouseClicked(new EventHandler<MouseEvent>() {
-			@Override
-			public void handle(MouseEvent arg0) {
-				aimed.setWorkloadAdapter(getSelectedWorkloadAdapter(), getWorkloadAdapterProperties());
-				aimed.startMeasurement(
-						getWarmupDuration(), getMeasurementDuration(), getSelectedMethods());
-			}		
-		});
-		selectAvailableAdapterBox.valueProperty().addListener(new ChangeListener<String>() {
-			@Override
-			public void changed(ObservableValue<? extends String> arg0, String arg1, String arg2) {
-				onLoadWorkloadAdapterClicked();
-			}
+		runMeasurementButton.setOnMouseClicked(me -> {
+			aimed.setWorkloadAdapter(getSelectedWorkloadAdapter(), getWorkloadAdapterProperties());
+			aimed.startMeasurement(getWarmupDuration(), getMeasurementDuration(), getSelectedMethods());
 		});
 		labelMeasurementState.textProperty().bind(measurementState);
-		resourceSelectButton.setOnMouseClicked(new EventHandler<MouseEvent>() {
-			@Override
-			public void handle(MouseEvent arg0) {
-				onResourceSelectButtonClicked();
-			}
+		selectAvailableAdapterBox.valueProperty().addListener((arg0, arg1, arg2) -> {
+			onLoadWorkloadAdapterClicked();
 		});
-		resourceLoadButton.setOnMouseClicked(new EventHandler<MouseEvent>() {
-			@Override
-			public void handle(MouseEvent arg0) {
-				onResourceLoadButtonClicked();
-			}
+		resourceSelectButton.setOnMouseClicked(me -> {
+			onResourceSelectButtonClicked();
+		});
+		resourceLoadButton.setOnMouseClicked(me -> {
+			onResourceLoadButtonClicked();
 		});
 		//TODO: Remove Event.fireEvent
-		Event.fireEvent(resourceLoadButton, new MouseEvent(MouseEvent.MOUSE_CLICKED, 0, 0, 0, 0, MouseButton.PRIMARY, 1, true, true, true, true, true, true, true, true, true, true, null));
-		resourceSelectAllButton.setOnMouseClicked(new EventHandler<MouseEvent>() {
-			@Override
-			public void handle(MouseEvent arg0) {
-				onSelectAllMethods(true);
-			}
+		if (!resourcePathTextField.getText().trim().isEmpty()) {
+			Event.fireEvent(resourceLoadButton, new MouseEvent(MouseEvent.MOUSE_CLICKED, 0, 0, 0, 0, MouseButton.PRIMARY, 1, true, true, true, true, true, true, true, true, true, true, null));
+		}
+		resourceSelectAllButton.setOnMouseClicked(me -> {
+			onSelectAllMethods(true);
 		});
-		resourceDeselectAllButton.setOnMouseClicked(new EventHandler<MouseEvent>() {
-			@Override
-			public void handle(MouseEvent arg0) {
-				onSelectAllMethods(false);
-			}
+		resourceDeselectAllButton.setOnMouseClicked(me -> {
+			onSelectAllMethods(false);
 		});
 		loadWorkloadAdapters();
+	}
+	
+	private void loadConfig() {
+		if (config.containsKey("aim.host")) {
+			aimHostTextField.setText(config.getProperty("aim.host"));
+		}
+		if (config.containsKey("aim.port")) {
+			aimPortTextField.setText(config.getProperty("aim.port"));	
+		}
+		if (config.containsKey("warmup.duration")) {
+			warmupDuration.setText(config.getProperty("warmup.duration"));
+		}
+		if (config.containsKey("measurement.duration")) {
+			measurementDuration.setText(config.getProperty("measurement.duration"));
+		}
+		if (config.containsKey("sourcecodedecorator.path")) {
+			resourcePathTextField.setText(config.getProperty("sourcecodedecorator.path"));
+		}
+	}
+	
+	private void addConfigListener() {
+		aimHostTextField.textProperty().addListener((observable, oldValue, newValue) -> {
+			config.setProperty("aim.host", newValue);
+		});
+		
+		aimPortTextField.textProperty().addListener((observable, oldValue, newValue) -> {
+			config.setProperty("aim.port", newValue);
+		});
+		
+		warmupDuration.textProperty().addListener((observable, oldValue, newValue) -> {
+			config.setProperty("warmup.duration", newValue);
+		});
+		
+		measurementDuration.textProperty().addListener((observable, oldValue, newValue) -> {
+			config.setProperty("measurement.duration", newValue);
+		});
+		
+		resourcePathTextField.textProperty().addListener((observable, oldValue, newValue) -> {
+			config.setProperty("sourcecodedecorator.path", newValue);
+		});
 	}
 	
 	private void loadWorkloadAdapters() {
@@ -154,6 +184,7 @@ public class GuiController implements Initializable, Observer {
 		TextField text;
 		for (ConfigParameterDescription cpd : configDesc) {
 			text = new TextField();
+			text.setMaxWidth(1.7976931348623157E308);
 			text.setPromptText(cpd.getName() + " as " + cpd.getType());
 			text.setText(cpd.getDefaultValue());
 			//TODO: remove lines
@@ -214,27 +245,51 @@ public class GuiController implements Initializable, Observer {
 		}
 	}
 
-	private void onConnectButtonClicked() {
-		if (!aimed.isConnected()) {
-			String host = hostTextField.getText();
-			String port = portTextField.getText();
-			setConnectStateText("Connecting...");
-			setHostPortDisable(true);
-			aimed.connectToMainagent(host, port);
-			if (!aimed.isConnected()) {
-				setConnectStateText(String.format("Can't connect to %s:%s.", host, port));
-				setHostPortDisable(false);
+	private void onAimConnectButtonClicked() {
+		if (!aimed.isConnectedToAIM()) {
+			String host = aimHostTextField.getText().trim();
+			String port = aimPortTextField.getText().trim();
+			setConnectStateText("Connecting to AIM ...");
+			setAIMHostPortDisable(true);
+			aimed.connectToAIM(host, port);
+			if (!aimed.isConnectedToAIM()) {
+				setConnectStateText(String.format("Can't connect to AIM on %s:%s.", host, port));
+				setAIMHostPortDisable(false);
 			} else {
-				setConnectStateText("Connected.");
-				setStartMeasurementButtonDisable(false);
-				setConnectButtonText("Disconnect");
+				setConnectStateText("Connected to AIM.");
+				checkStartMeasurementButtonDisable();
+				setAIMConnectButtonText("Disconnect from AIM");
 			}
 		} else {
-			aimed.disconnectFromMainagent();
-			setConnectButtonText("Connect");
-			setHostPortDisable(false);
-			setConnectStateText("Disconnected");
-			setStartMeasurementButtonDisable(true);
+			aimed.disconnectFromAIM();
+			setAIMConnectButtonText("Connect to AIM");
+			setAIMHostPortDisable(false);
+			setConnectStateText("Disconnected from AIM.");
+			checkStartMeasurementButtonDisable();
+		}
+	}
+	
+	private void onRserveConnectButtonClicked() {
+		if (!aimed.isConnectedToRserve()) {
+			String host = rserveHostTextField.getText().trim();
+			String port = rservePortTextField.getText().trim();
+			setConnectStateText("Connecting to Rserve ...");
+			setRserveHostPortDisable(true);
+			aimed.connectToRserve(host, port);
+			if (!aimed.isConnectedToRserve()) {
+				setConnectStateText(String.format("Can't connect to Rserve on %s:%s.", host, port));
+				setRserveHostPortDisable(false);
+			} else {
+				setConnectStateText("Connected to Rserve.");
+				checkStartMeasurementButtonDisable();
+				setRserveConnectButtonText("Disconnect from Rserve");
+			}
+		} else {
+			aimed.disconnectFromRserve();
+			setRserveConnectButtonText("Connect to Rserve");
+			setRserveHostPortDisable(false);
+			setConnectStateText("Disconnected from Rserve.");
+			checkStartMeasurementButtonDisable();
 		}
 	}
 	
@@ -245,26 +300,39 @@ public class GuiController implements Initializable, Observer {
 		connectionState.set(text);
 	}
 	
-	private void setHostPortDisable(boolean disabled) {
-		hostTextField.setDisable(disabled);
-		portTextField.setDisable(disabled);
+	private void setAIMHostPortDisable(boolean disabled) {
+		aimHostTextField.setDisable(disabled);
+		aimPortTextField.setDisable(disabled);
+	}
+	
+	private void setRserveHostPortDisable(boolean disabled) {
+		rserveHostTextField.setDisable(disabled);
+		rservePortTextField.setDisable(disabled);
 	}
 	
 	private void setConnectButtonDisable(boolean disabled) {
-		connectButton.setDisable(disabled);
+		aimConnectButton.setDisable(disabled);
+		rserveConnectButton.setDisable(disabled);
 	}
 	
-	private void setConnectButtonText(String text) {
-		Platform.runLater(new Runnable() {
-			@Override
-			public void run() {
-				connectButton.setText(text);
-			}
+	private void setAIMConnectButtonText(String text) {
+		Platform.runLater((Runnable)() -> {
+			aimConnectButton.setText(text);
 		});
 	}
 	
-	private void setStartMeasurementButtonDisable(boolean disabled) {
-		runMeasurementButton.setDisable(disabled);
+	private void setRserveConnectButtonText(String text) {
+		Platform.runLater((Runnable)() -> {
+			rserveConnectButton.setText(text);
+		});
+	}
+	
+	private void checkStartMeasurementButtonDisable() {
+		if (aimed.isConnectedToAIM() && aimed.isConnectedToRserve()) {
+			runMeasurementButton.setDisable(false);
+		} else {
+			runMeasurementButton.setDisable(true);
+		}
 	}
 	
 	private void setStartMeasurementButtonText(String text) {
@@ -292,11 +360,11 @@ public class GuiController implements Initializable, Observer {
 	}
 	
 	private int getWarmupDuration() {
-		return Integer.parseInt(warmupDuration.getText());
+		return Integer.parseInt(warmupDuration.getText().trim());
 	}
 	
 	private int getMeasurementDuration() {
-		return Integer.parseInt(measurementDuration.getText());
+		return Integer.parseInt(measurementDuration.getText().trim());
 	}
 	
 	private void setResult(List<String> resultLines) {
@@ -328,14 +396,14 @@ public class GuiController implements Initializable, Observer {
 			setSelectMethodsDisable(true);
 			setSelectWorkloadDisable(true);
 			setConfigDisable(true);
-			setStartMeasurementButtonDisable(true);
+			runMeasurementButton.setDisable(true);
 			setConnectButtonDisable(true);
 		}
 		if (message.getMeasurementState() == MeasurementState.STOPPING) {
 			setSelectMethodsDisable(false);
 			setSelectWorkloadDisable(false);
 			setConfigDisable(false);
-			setStartMeasurementButtonDisable(false);
+			runMeasurementButton.setDisable(false);
 			setConnectButtonDisable(false);
 		}
 		setMeasurementStateLabelText(message.getMessage());
@@ -368,7 +436,7 @@ public class GuiController implements Initializable, Observer {
 	
 	private void onResourceLoadButtonClicked() {
 		seffMethodsVBox.getChildren().clear();
-		aimed.loadResources(resourcePathTextField.getText());
+		aimed.loadResources(resourcePathTextField.getText().trim());
 		List<String> methods = aimed.getSeffMethodNames();
 		CheckBox checkBox;
 		for (String method : methods) {
