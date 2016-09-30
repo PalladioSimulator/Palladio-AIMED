@@ -47,7 +47,7 @@ public class ResultCalculator {
 	private FileProcessor fileProcessor;
 	private RAdapter rAdapter;
 	private long processingRateCpu = 1;
-	private Map<InternalAction, Set<Long>> resourceDemandPerInternalAction;
+	private Map<InternalAction, Set<Amount<Duration>>> resourceDemandPerInternalAction;
 	private LinkedList<Amount<Duration>> prevTimeStamps;
 
 	public ResultCalculator() {
@@ -74,11 +74,10 @@ public class ResultCalculator {
 		rAdapter.loadDefaultDhistSource();
 		String doublePDF;
 		for (InternalAction ia : resourceDemandPerInternalAction.keySet()) {
-			Set<Long> bla = resourceDemandPerInternalAction.get(ia);
+			Set<Amount<Duration>> bla = resourceDemandPerInternalAction.get(ia);
 			doublePDF = rAdapter.doublePDF(bla);
 			writeResourceDemandToInternalAction(ia, doublePDF);
 		}
-		System.out.println();
 	}
 	
 	private void writeResourceDemandToInternalAction(InternalAction ia, String resourceDemand) {
@@ -211,12 +210,12 @@ public class ResultCalculator {
 	}
 	
 	private void calculateResponseTimes(InternalAction ia, ResourceDemandingInterval rdi) {
-		Set<Long> resourceDemands = new HashSet<>();
+		Set<Amount<Duration>> resourceDemands = new HashSet<>();
 		Amount<Duration> responseTime;
-		Long resourceDemand;
+		Amount<Duration> resourceDemand;
 		for (List<ResponseTimeRecord> records : measurementsList) {
 			responseTime = getResponseTimePerRecord(rdi, records);
-			resourceDemand = responseTime.getExactValue() * processingRateCpu;
+			resourceDemand = responseTime.to(CostumUnits.ResourceDemand);//.times(processingRateCpu);
 			resourceDemands.add(resourceDemand);
 		}
 		resourceDemandPerInternalAction.put(ia, resourceDemands);

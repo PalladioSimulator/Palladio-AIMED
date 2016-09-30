@@ -5,6 +5,9 @@ import java.net.URL;
 import java.util.MissingResourceException;
 import java.util.Set;
 
+import javax.measure.quantity.Duration;
+
+import org.jscience.physics.amount.Amount;
 import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RserveException;
 
@@ -72,14 +75,22 @@ public class RAdapter {
 		return result;
 	}
 	
-	public String doublePDF (Set<Long> resourceDemands) {
+	public String doublePDF (Set<Amount<Duration>> resourceDemands) {
 		if (!dhistLoaded) {
 			throw new MissingResourceException("Resource to run doublePDF is not laoded!", "dhist.r", "");
 		}
 		String vector = "";
 		String result = "";
-		for (Long demand : resourceDemands) {
-			vector += String.valueOf(demand) + ",";
+		for (Amount<Duration> demand : resourceDemands) {
+			double test = demand.getExactValue();
+			vector += String.valueOf(demand.getExactValue()) + ",";
+		}
+		if (vector.isEmpty()) {
+			try {
+				throw new Exception("No resource demands to calculate.");
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 		if (vector.endsWith(",")) {
 			vector = vector.substring(0, vector.length() -1);
@@ -89,6 +100,7 @@ public class RAdapter {
 			connection.eval("result <- doublePDF(myvector)");
 			result = connection.eval("result").asString();
 			System.out.println(result);
+			System.out.println();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

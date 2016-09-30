@@ -11,10 +11,13 @@ import java.util.Properties;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import javax.measure.quantity.Duration;
+import javax.measure.unit.UnitFormat;
+
 import org.aim.aiminterface.IAdaptiveInstrumentation;
 import org.aim.aiminterface.entities.measurements.MeasurementData;
 import org.aim.artifacts.client.JMXAdaptiveInstrumentationClient;
-import org.codehaus.jackson.map.DeserializerFactory.Config;
+import org.jscience.physics.amount.Amount;
 import org.lpe.common.config.GlobalConfiguration;
 import org.lpe.common.extension.ExtensionRegistry;
 import org.lpe.common.extension.IExtension;
@@ -27,6 +30,8 @@ import org.spotter.exceptions.WorkloadException;
 
 import messages.*;
 import util.RAdapter;
+import util.Config;
+import util.CostumUnits;
 
 
 public class AimedMainController extends Observable implements Observer {
@@ -55,10 +60,13 @@ public class AimedMainController extends Observable implements Observer {
 
 	private AimedMainController() {
 		loadWorkloadAdapter();
-		//CostumUnits test = CostumUnits.getInstance();
-		//Amount<Dimensionless> processingRate = Amount.valueOf(1, CostumUnits.ProcessingRate);
-		//Amount<Duration> bla = Amount.valueOf(100000000, SI.NANO(SI.SECOND)).times(Amount.valueOf(1, CostumUnits.ProcessingRate));
-		//System.out.println(processingRate);
+		initializeCostumUnits();
+	}
+	
+	private void initializeCostumUnits() {
+		CostumUnits costumUnit = CostumUnits.getInstance();
+		UnitFormat.getInstance().label(CostumUnits.ResourceDemand, "AbstractWorkUnit");
+		UnitFormat.getInstance().alias(CostumUnits.ResourceDemand, "AbstractWorkUnit");
 	}
 	
 	public void loadResources(String sourceCodeDecoratorFilePath) {
@@ -83,8 +91,8 @@ public class AimedMainController extends Observable implements Observer {
 	private void loadWorkloadAdapter() {
 		workloadExtensions = new ArrayList<>();
 		Properties workloadProperties = new Properties();
-		workloadProperties.put(ExtensionRegistry.PLUGINS_FOLDER_PROPERTY_KEY, "C:/Users/Cel/Studium/Bachelor/Vorbereitung/Eclipse/git/DynamicSpotter-Extensions/org.spotter.ext.parent/target");
-		workloadProperties.put(ExtensionRegistry.APP_ROOT_DIR_PROPERTY_KEY, "C:/Users/Cel/Studium/Bachelor/Vorbereitung/Eclipse/git/DynamicSpotter-Extensions/org.spotter.ext.parent/target");
+		workloadProperties.put(ExtensionRegistry.PLUGINS_FOLDER_PROPERTY_KEY, Config.getInstance().getProperty("plugins.path", ""));
+		workloadProperties.put(ExtensionRegistry.APP_ROOT_DIR_PROPERTY_KEY, Config.getInstance().getProperty("plugins.path", ""));
 		GlobalConfiguration.initialize(workloadProperties);
 		IExtensionRegistry extensionRegistry = ExtensionRegistry.getSingleton();
 		final Collection<? extends IExtension> extensions = extensionRegistry.getExtensions();

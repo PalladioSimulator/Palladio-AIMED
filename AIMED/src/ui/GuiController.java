@@ -192,7 +192,8 @@ public class GuiController implements Initializable, Observer {
 				text.setText("C:/Users/Cel/Eclipse/apache-jmeter-2.13");
 			}
 			if (cpd.getName().contains("workload.jmeter.scenarioFile")) {
-				text.setText("C:/Users/Cel/Studium/Bachelor/Vorbereitung/userVariable.jmx");
+				//text.setText("C:/Users/Cel/Studium/Bachelor/Vorbereitung/userVariable.jmx");
+				text.setText("C:/Users/Cel/Studium/Bachelor/Vorbereitung/myCloudStoreLeagacy.jmx");
 			}
 			if (cpd.getName().contains("workload.jmeter.logFileFlag")) {
 				text.setText("true");
@@ -442,7 +443,7 @@ public class GuiController implements Initializable, Observer {
 		for (String method : methods) {
 			checkBox = new CheckBox(method);
 			//TODO: Remove if construct
-			if (method.contains("doX")) {
+			if (method.contains("doX") || method.contains("getBook")) {
 				checkBox.setSelected(true);
 			}
 			seffMethodsVBox.getChildren().add(checkBox);
