@@ -18,16 +18,34 @@ import messages.MeasurementState;
 import messages.MeasurementStateMessage;
 
 public class MeasurementRunner extends Observable implements Runnable {
+	/**
+	 * The workload adapter to generate workload.
+	 */
 	private AbstractWorkloadAdapter workloadAdapter;
 	
+	/**
+	 * The client to communicate with AIM.
+	 */
 	private IAdaptiveInstrumentation instrumentationClient;
 	
+	/**
+	 * The duration in seconds for warm up phase.
+	 */
 	private int warmupDuration;
 	
+	/**
+	 * The measurement duration in seconds for each method pattern.
+	 */
 	private int measurementDuration;
 	
+	/**
+	 * The list of patterns to be studied.
+	 */
 	private List<String> methodPatterns;
 	
+	/**
+	 * It is true if all required options has been set.
+	 */
 	private boolean isInitialized = false;
 	
 	public MeasurementRunner() {
@@ -68,6 +86,9 @@ public class MeasurementRunner extends Observable implements Runnable {
 		this.instrumentationClient = instrumentationClient;
 	}
 	
+	/**
+	 * Checks if all required members has been set.
+	 */
 	public void initialize() {
 		setWarmupDurationInS(this.warmupDuration);
 		setMeasurementDuration(this.measurementDuration);
@@ -75,7 +96,12 @@ public class MeasurementRunner extends Observable implements Runnable {
 		setMethodPatterns(this.methodPatterns);
 		this.isInitialized = true;
 	}
-		
+	
+	/**
+	 * Generates a workload configuration. Its static except for the duration the workload adapter has to run.
+	 * @param workloadDurationInS The duration in seconds the workload adapter should run.
+	 * @return Returns the generated workload configuration.
+	 */
 	private LoadConfig generateLoadConfig(int workloadDurationInS) {
 		LoadConfig loadConfig = new LoadConfig();
 		// Caused by the single user approach
@@ -88,6 +114,9 @@ public class MeasurementRunner extends Observable implements Runnable {
 		return loadConfig;
 	}
 	
+	/**
+	 * Runs the warm up without measuring any data.
+	 */
 	private void warmUp() {
 		if (warmupDuration == 0) {
 			return;
@@ -101,6 +130,9 @@ public class MeasurementRunner extends Observable implements Runnable {
 		}
 	}
 	
+	/**
+	 * Runs the workload adapter for each given method.
+	 */
 	private void runMeasurements() {
 		notifyObservers(new MeasurementStateMessage(MeasurementState.RUNNING, "Starting Measurements..."));
 		LoadConfig loadConfig = generateLoadConfig(measurementDuration);
@@ -108,11 +140,10 @@ public class MeasurementRunner extends Observable implements Runnable {
 			try {				
 				InstrumentationDescription instrumentationDescription = createInstrumentationDescription(pattern);
 				notifyObservers(new MeasurementStateMessage(MeasurementState.RUNNING, String.format("Now measuring %s", pattern)));
-				workloadAdapter.startLoad(loadConfig);
-				
 				instrumentationClient.instrument(instrumentationDescription);
 				instrumentationClient.enableMonitoring();
-
+				workloadAdapter.startLoad(loadConfig);
+				
 				workloadAdapter.waitForFinishedLoad();
 
 				instrumentationClient.disableMonitoring();
@@ -128,6 +159,11 @@ public class MeasurementRunner extends Observable implements Runnable {
 		notifyObservers(new MeasurementStateMessage(MeasurementState.STOPPING, "Finished measurements."));
 	}
 	
+	/**
+	 * Creates an instrumentation description required by AIM to instrument the interesting methods.
+	 * @param methodPattern The pattern of the method AIM should instrument.
+	 * @return Returns the generated instrumentation description for this method.
+	 */
 	private InstrumentationDescription createInstrumentationDescription(String methodPattern) {
 		//List<String> apiScopes = new ArrayList<String>(instrumentationClient.getSupportedExtensions().getApiScopeExtensions());
 		List<String> customScopes = new ArrayList<String>(

@@ -13,6 +13,7 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.emf.ecore.resource.impl.ResourceSetImpl;
 import org.eclipse.emf.ecore.xmi.impl.XMIResourceFactoryImpl;
+import org.eclipse.gmt.modisco.java.ArrayAccess;
 import org.eclipse.gmt.modisco.java.ArrayInitializer;
 import org.eclipse.gmt.modisco.java.ArrayLengthAccess;
 import org.eclipse.gmt.modisco.java.AssertStatement;
@@ -61,11 +62,24 @@ import org.somox.sourcecodedecorator.SourceCodeDecoratorPackage;
 import org.somox.sourcecodedecorator.SourceCodeDecoratorRepository;
 
 public class FileProcessor {
+	/**
+	 * The resource containing the KDM and the PCM.
+	 */
 	private Resource sourceCodeResource;
+	
+	/**
+	 * The repository of the source code decorator .
+	 */
 	private SourceCodeDecoratorRepository sourceCodeModel;
+	
+	/**
+	 * A list of methods directly called by one method.
+	 */
 	private List<String> calledMethods;
 	
-	
+	/**
+	 * Add required packages to the registry.
+	 */
 	public FileProcessor() {
 		EPackage.Registry.INSTANCE.put(KdmPackage.eINSTANCE.getNsURI(), KdmPackage.eINSTANCE);
 		EPackage.Registry.INSTANCE.put(JavaPackage.eINSTANCE.getNsURI(), JavaPackage.eINSTANCE);
@@ -74,6 +88,11 @@ public class FileProcessor {
 		Resource.Factory.Registry.INSTANCE.getExtensionToFactoryMap().put("*", new XMIResourceFactoryImpl());
 	}
 	
+	/**
+	 * Loads the resource using the given file path. 
+	 * The KDM and the PCM are loaded automatically by using the paths in the inner of the source code decorator.
+	 * @param sourceCodeDecoratorFilePath The file path to the source code decorator
+	 */
 	public void loadResources(String sourceCodeDecoratorFilePath) {
 		ResourceSet rs = new ResourceSetImpl();
 		URI sourceCodeDecoratorUri = URI.createFileURI(sourceCodeDecoratorFilePath);	
@@ -87,6 +106,9 @@ public class FileProcessor {
 		}
 	}
 	
+	/**
+	 * @return Returns all SEFFs existing in loaded the PCM.
+	 */
 	public List<ResourceDemandingSEFF> getSeffs() {
 		EList<Seff2MethodLink> smls = sourceCodeModel.getSeff2MethodLink();
 		List<ResourceDemandingSEFF> result = new ArrayList<>();
@@ -98,6 +120,11 @@ public class FileProcessor {
 		return result;
 	}
 	
+	/**
+	 * Removes the brackets to get the class definition of a generated component.
+	 * @param entityName The complete name of the component.
+	 * @return Returns the class definition of the component, extracted by its name.
+	 */
 	public String extractEntityDefinition(String entityName) {
 		int stringEnd = entityName.length();
 		if (entityName.endsWith(">")) {
@@ -116,15 +143,29 @@ public class FileProcessor {
 		return entityName.substring(defStart, stringEnd);
 	}
 	
+	/**
+	 * Removes the method name to get the class definition of the method.
+	 * @param completeMethodName The method and its class definition.
+	 * @return Returns the class definition.
+	 */
 	private String extractClassName(String completeMethodName) {
 		int lastDotIndex = completeMethodName.lastIndexOf(".");
+		int beginIndex = 0;
+		if (completeMethodName.startsWith("*")) {
+			beginIndex = 1;
+		}
 		if (lastDotIndex == -1) {
 			return "";
 		} else {
-			return completeMethodName.substring(0, lastDotIndex);
+			return completeMethodName.substring(beginIndex, lastDotIndex);
 		}
 	}
 	
+	/**
+	 * Removes the class definition to get the name of the method.
+	 * @param completeMethodName The method an its class definition.
+	 * @return Returns the name of the method.
+	 */
 	private String extractMethodName(String completeMethodName) {
 		if (completeMethodName.endsWith("*")) {
 			completeMethodName = completeMethodName.substring(0, completeMethodName.length() - 1);
@@ -137,6 +178,10 @@ public class FileProcessor {
 		}		
 	}
 	
+	/**
+	 * @param completeMethodName Requires the class definition and the method, e.g., "package.class.method".
+	 * @return Returns the SEFF of a given method.
+	 */
 	public ResourceDemandingSEFF getSeff(String completeMethodName) {
 		String className = extractClassName(completeMethodName);
 		String methodName = extractMethodName(completeMethodName);
@@ -154,6 +199,9 @@ public class FileProcessor {
 		throw new IndexOutOfBoundsException(String.format("Seff for method %s not found.", completeMethodName));
 	}
 	
+	/**
+	 * Store the resource back to disk.
+	 */
 	public void saveResource() {
 		try {
 			sourceCodeResource.save(null);
@@ -162,10 +210,18 @@ public class FileProcessor {
 		}
 	}
 	
+	/**
+	 * @return Returns if the model is modified.
+	 */
 	public boolean isModified() {
 		return sourceCodeResource.isModified();
 	}
 	
+	/**
+	 * This method returns all methods that are directly called by a method.
+	 * @param completeMethodName
+	 * @return
+	 */
 	public List<String> getTrace1Methods(String completeMethodName) {
 		calledMethods = new ArrayList<>();
 		List<MethodLevelSourceCodeLink> mlscls = sourceCodeModel.getMethodLevelSourceCodeLink();
@@ -182,6 +238,7 @@ public class FileProcessor {
 						e.printStackTrace();
 					}
 				}
+				return calledMethods;
 			}
 		}
 		return calledMethods;
@@ -301,7 +358,9 @@ public class FileProcessor {
 		if (statement instanceof ContinueStatement) {
 			return;
 		}
-		throw new UnsupportedDataTypeException("Not supportet Statement: " + statement.toString());
+		if (statement != null) {
+			throw new UnsupportedDataTypeException("Not supportet Statement: " + statement.toString());			
+		}
 	}
 	
 	private void processExpression(Expression expression) throws UnsupportedDataTypeException {
@@ -391,7 +450,12 @@ public class FileProcessor {
 		if (expression instanceof NumberLiteral) {
 			return;
 		}
-		throw new UnsupportedDataTypeException("Not supportet Expression: " + expression.toString());
+		if (expression instanceof ArrayAccess) {
+			return;
+		}
+		if (expression != null) {
+			throw new UnsupportedDataTypeException("Not supportet Expression: " + expression.toString());			
+		}
 	}
 	
 	private String removeCompilationUnitEnding(String compilationUnitName) {

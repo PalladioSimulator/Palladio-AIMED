@@ -87,7 +87,7 @@ public class ResultCalculator {
 		for (ParametricResourceDemand prd : prds) {
 			prv = prd.getSpecification_ParametericResourceDemand();
 			prv.setSpecification(resourceDemand);
-			prd.setSpecification_ParametericResourceDemand(prv);
+			//prd.setSpecification_ParametericResourceDemand(prv);
 		}
 		//TODO: Wie weiter?
 		System.out.println(fileProcessor.isModified());

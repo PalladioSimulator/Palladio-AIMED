@@ -37,18 +37,39 @@ import util.CostumUnits;
 public class AimedMainController extends Observable implements Observer {
 	private static AimedMainController instance = null;
 
+	/**
+	 * Client used for communication to AIM.
+	 */
 	private IAdaptiveInstrumentation instrumentationClient;
 	
+	/**
+	 * Results added by MeasurementRunner
+	 */
 	private Map<String, MeasurementData> results = new HashMap<>();
 	
+	/**
+	 * Loaded workloadExtensions
+	 */
 	private List<IExtension> workloadExtensions;
 	
+	/**
+	 * The selected workload adapter
+	 */
 	private AbstractWorkloadAdapter selectedWorkloadAdapter;
 	
+	/**
+	 * Instance of the class that loads the resources
+	 */
 	private FileProcessor fileProcessor;
 	
+	/**
+	 * Instance of the class that converts the calculated response times to a histogram
+	 */
 	private RAdapter rAdapter;
 	
+	/**
+	 * Thread future of the MeasurementRunner
+	 */
 	private Future<?> measurementThreadPool = null;
 
 	public static synchronized AimedMainController getInstance() {
@@ -63,17 +84,29 @@ public class AimedMainController extends Observable implements Observer {
 		initializeCostumUnits();
 	}
 	
+	/**
+	 * Initializes the costum units. Is required to rename the ResourceDemands to abstract work units.
+	 */
 	private void initializeCostumUnits() {
 		CostumUnits costumUnit = CostumUnits.getInstance();
 		UnitFormat.getInstance().label(CostumUnits.ResourceDemand, "AbstractWorkUnit");
 		UnitFormat.getInstance().alias(CostumUnits.ResourceDemand, "AbstractWorkUnit");
 	}
 	
+	/**
+	 * Triggers fileProcessor to load the KDM and the PCM model and its connection, the source code decorator.
+	 * @param sourceCodeDecoratorFilePath File path to the source code decorator.
+	 */
 	public void loadResources(String sourceCodeDecoratorFilePath) {
 		fileProcessor = new FileProcessor();
 		fileProcessor.loadResources(sourceCodeDecoratorFilePath);
 	}
 	
+	/**
+	 * This method extract the Name of the seffs and the compontent's name and connects them to a java style definition
+	 * E.g., package.class.doX
+	 * @return Returns a list of all existing methods in the resource model.
+	 */
 	public List<String> getSeffMethodNames() {
 		List<String> result = new ArrayList<>();
 		List<ResourceDemandingSEFF> seffs = fileProcessor.getSeffs();
@@ -88,6 +121,10 @@ public class AimedMainController extends Observable implements Observer {
 		return result;
 	}
 	
+	/**
+	 * Loads the workload extensions using the extension registry from dynamic spotter.
+	 * Each found workload extension is added to the private member "workloadExtensions".
+	 */
 	private void loadWorkloadAdapter() {
 		workloadExtensions = new ArrayList<>();
 		Properties workloadProperties = new Properties();
@@ -103,6 +140,11 @@ public class AimedMainController extends Observable implements Observer {
 		}
 	}
 	
+	/**
+	 * Sets the workload adapter for later use.
+	 * @param adapter The workload generation adapter
+	 * @param properties The configuration of the workload adapter.
+	 */
 	public void setWorkloadAdapter(AbstractWorkloadAdapter adapter, Properties properties) {
 		selectedWorkloadAdapter = adapter;
 		selectedWorkloadAdapter.setProperties(properties);
@@ -113,10 +155,19 @@ public class AimedMainController extends Observable implements Observer {
 		}
 	}
 	
+	/**
+	 * @return Returns the loaded workload extensions.
+	 */
 	public List<IExtension> getAvailableWorkloadAdapter() {
 		return workloadExtensions;
 	}
 
+	/**
+	 * Connects to AIM using JMXAdaptiveInstrumentationClient
+	 * @param host the host of AIM
+	 * @param port the port of AIM
+	 * @return returns if the connection was successful
+	 */
 	public boolean connectToAIM(String host, String port) {
 		if (host.isEmpty() || host == null || port.isEmpty() || port == null) {
 			notifyObservers(new ConnectionStateMessage("Host or port for the connection to AIM is empty."));
@@ -133,6 +184,9 @@ public class AimedMainController extends Observable implements Observer {
 		return instrumentationClient.testConnection();
 	}
 	
+	/**
+	 * @return Returns if AIMED is connected to AIM
+	 */
 	public boolean isConnectedToAIM() {
 		if (instrumentationClient == null) {
 			return false;
@@ -141,6 +195,9 @@ public class AimedMainController extends Observable implements Observer {
 		}
 	}
 	
+	/**
+	 * Disonnects from AIM and disables monitoring and uninstruments AIM.
+	 */
 	public void disconnectFromAIM() {
 		try {
 			if (instrumentationClient != null) {
@@ -153,6 +210,12 @@ public class AimedMainController extends Observable implements Observer {
 		instrumentationClient = null;
 	}
 	
+	/**
+	 * Connects to the Rserve server to later convert the resource demands to a hist
+	 * @param host Rserve host
+	 * @param port Rserve port
+	 * @return returns if the connection was successful
+	 */
 	public boolean connectToRserve(String host, String port) {
 		if (host.isEmpty() || host == null || port.isEmpty() || port == null) {
 			notifyObservers(new ConnectionStateMessage("Host or port for the connection to Rserve is empty."));
@@ -162,7 +225,7 @@ public class AimedMainController extends Observable implements Observer {
 			if (rAdapter == null) {
 				rAdapter = new RAdapter();
 			}
-			rAdapter.connect(host, Integer.parseInt(port));		
+			rAdapter.connect(host, Integer.parseInt(port));
 			return rAdapter.isConnected();	
 		} catch (RserveException e) {
 			notifyObservers(new ConnectionStateMessage(String.format("Can't connect to Rserve on %s:%s", host, port)));
@@ -170,6 +233,9 @@ public class AimedMainController extends Observable implements Observer {
 		return false;
 	}
 	
+	/**
+	 * @return Returns if the connection to Rserve was successful
+	 */
 	public boolean isConnectedToRserve() {
 		if (rAdapter == null) {
 			return false;
@@ -177,12 +243,21 @@ public class AimedMainController extends Observable implements Observer {
 		return rAdapter.isConnected();
 	}
 	
+	/**
+	 * Disconnects from Rserve without shutting down the Rserve server.
+	 */
 	public void disconnectFromRserve() {
 		if (rAdapter != null) {
 			rAdapter.disconnect();
 		}
 	}
 	
+	/**
+	 * Starts AIMED to begin the measurements and calculations.
+	 * @param warmupDurationInS The duration in seconds how long the workload should run without an instrumented system
+	 * @param measurementDurationInS The duration seconds the workload adapter should run while AIM has instrumented the system
+	 * @param methodPatterns The list of methods to be instrumented after each oher.
+	 */
 	public void startMeasurement(
 			final int warmupDurationInS, 
 			final int measurementDurationInS, 
@@ -193,6 +268,9 @@ public class AimedMainController extends Observable implements Observer {
 			if (!method.endsWith("*")) {
 				method = method + "*";
 			}
+			if (!method.startsWith("*")) {
+				method = "*" + method;
+			}
 			newMethodPatterns.add(method);
 		}
 		methodPatterns = newMethodPatterns;
@@ -201,6 +279,13 @@ public class AimedMainController extends Observable implements Observer {
 		measurementThreadPool = Executors.newCachedThreadPool().submit(runner);
 	}
 
+	/**
+	 * Creates a runnable that can be submitted to a thread pool.
+	 * @param warmupDurationInS
+	 * @param measurementDurationInS
+	 * @param methodPatterns
+	 * @return Returns a submitable Runnable.
+	 */
 	private MeasurementRunner createRunnableMeasurement(final int warmupDurationInS, final int measurementDurationInS,
 			final List<String> methodPatterns) {
 		MeasurementRunner runner = new MeasurementRunner();
@@ -214,10 +299,18 @@ public class AimedMainController extends Observable implements Observer {
 		return runner;
 	}
 		
+	/**
+	 * Appends results to the collection of measurement results.
+	 * @param pattern The name of the methods used as key in the map.
+	 * @param measurementData The measured data as value.
+	 */
 	public void appendResults(String pattern, MeasurementData measurementData) {
 		results.put(pattern, measurementData);
 	}
 
+	/**
+	 * This method begins the calculation phase. It is called via an update of observed classes.
+	 */
 	private void createResults() {
 		if (measurementThreadPool != null) {
 			measurementThreadPool.cancel(true);
@@ -229,6 +322,7 @@ public class AimedMainController extends Observable implements Observer {
 			notifyObservers(new MeasurementStateMessage(MeasurementState.CALCULATING, String.format("Now calculating results for %s.", method)));
 			resultCalc.calculateResourceDemand(method, results.get(method));
 		}
+		notifyObservers(new MeasurementStateMessage(MeasurementState.CALCULATING, "Finished."));
 		/*
 		notifyObservers(new ResultMessage(resultLines));
 		*/

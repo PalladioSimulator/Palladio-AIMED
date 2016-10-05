@@ -193,7 +193,7 @@ public class GuiController implements Initializable, Observer {
 			}
 			if (cpd.getName().contains("workload.jmeter.scenarioFile")) {
 				//text.setText("C:/Users/Cel/Studium/Bachelor/Vorbereitung/userVariable.jmx");
-				text.setText("C:/Users/Cel/Studium/Bachelor/Vorbereitung/myCloudStoreLeagacy.jmx");
+				text.setText("C:/Users/Cel/Studium/Bachelor/Vorbereitung/CloudStoreNoSearch.jmx");
 			}
 			if (cpd.getName().contains("workload.jmeter.logFileFlag")) {
 				text.setText("true");
@@ -441,7 +441,8 @@ public class GuiController implements Initializable, Observer {
 		List<String> methods = aimed.getSeffMethodNames();
 		CheckBox checkBox;
 		for (String method : methods) {
-			checkBox = new CheckBox(method);
+			checkBox = new CheckBox();
+			checkBox.setText(method);
 			//TODO: Remove if construct
 			if (method.contains("doX") || method.contains("getBook")) {
 				checkBox.setSelected(true);
