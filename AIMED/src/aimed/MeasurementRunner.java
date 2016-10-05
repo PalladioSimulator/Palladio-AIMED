@@ -118,6 +118,7 @@ public class MeasurementRunner extends Observable implements Runnable {
 	 * Runs the warm up without measuring any data.
 	 */
 	private void warmUp() {
+		notifyObservers(new MeasurementStateMessage(MeasurementState.STARTING_MEASUREMENT, "Warming up..."));
 		if (warmupDuration == 0) {
 			return;
 		}
@@ -156,7 +157,7 @@ public class MeasurementRunner extends Observable implements Runnable {
 				e.printStackTrace();
 			}
 		}
-		notifyObservers(new MeasurementStateMessage(MeasurementState.STOPPING, "Finished measurements."));
+		notifyObservers(new MeasurementStateMessage(MeasurementState.STOPPING_MEASUREMENT, "Finished measurements."));
 	}
 	
 	/**
@@ -193,7 +194,7 @@ public class MeasurementRunner extends Observable implements Runnable {
 			runMeasurements();
 		} else {
 			final String message = "Measurement evnironment not initialized.";
-			notifyObservers(new MeasurementStateMessage(MeasurementState.STOPPING, message));
+			notifyObservers(new MeasurementStateMessage(MeasurementState.STOPPING_MEASUREMENT, message));
 			throw new IllegalStateException(message);
 		}
 	}

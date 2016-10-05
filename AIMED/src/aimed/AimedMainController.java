@@ -274,7 +274,7 @@ public class AimedMainController extends Observable implements Observer {
 			newMethodPatterns.add(method);
 		}
 		methodPatterns = newMethodPatterns;
-		notifyObservers(new MeasurementStateMessage(MeasurementState.STARTING, "Warming up..."));
+		notifyObservers(new MeasurementStateMessage(MeasurementState.STARTING_MEASUREMENT, "Warming up..."));
 		MeasurementRunner runner = createRunnableMeasurement(warmupDurationInS, measurementDurationInS, methodPatterns);
 		measurementThreadPool = Executors.newCachedThreadPool().submit(runner);
 	}
@@ -322,7 +322,10 @@ public class AimedMainController extends Observable implements Observer {
 			notifyObservers(new MeasurementStateMessage(MeasurementState.CALCULATING, String.format("Now calculating results for %s.", method)));
 			resultCalc.calculateResourceDemand(method, results.get(method));
 		}
-		notifyObservers(new MeasurementStateMessage(MeasurementState.CALCULATING, "Finished."));
+		notifyObservers(new MeasurementStateMessage(MeasurementState.SAVING, "Saving resources."));
+		fileProcessor.saveResources();
+		
+		notifyObservers(new MeasurementStateMessage(MeasurementState.ALL_FINISHED, "Finished."));
 		/*
 		notifyObservers(new ResultMessage(resultLines));
 		*/
@@ -334,7 +337,7 @@ public class AimedMainController extends Observable implements Observer {
 			if (arg1 instanceof MeasurementStateMessage){
 				MeasurementStateMessage msg = (MeasurementStateMessage) arg1;
 				notifyObservers(msg);
-				if (msg.getMeasurementState() == MeasurementState.STOPPING) {
+				if (msg.getMeasurementState() == MeasurementState.STOPPING_MEASUREMENT) {
 					createResults();
 				}
 			}

@@ -192,8 +192,8 @@ public class GuiController implements Initializable, Observer {
 				text.setText("C:/Users/Cel/Eclipse/apache-jmeter-2.13");
 			}
 			if (cpd.getName().contains("workload.jmeter.scenarioFile")) {
-				//text.setText("C:/Users/Cel/Studium/Bachelor/Vorbereitung/userVariable.jmx");
-				text.setText("C:/Users/Cel/Studium/Bachelor/Vorbereitung/CloudStoreNoSearch.jmx");
+				text.setText("C:/Users/Cel/Studium/Bachelor/Vorbereitung/userVariable.jmx");
+				//text.setText("C:/Users/Cel/Studium/Bachelor/Vorbereitung/CloudStoreNoSearch.jmx");
 			}
 			if (cpd.getName().contains("workload.jmeter.logFileFlag")) {
 				text.setText("true");
@@ -393,14 +393,14 @@ public class GuiController implements Initializable, Observer {
 	}
 	
 	private void onMeasurementStateMessage(MeasurementStateMessage message) {
-		if (message.getMeasurementState() == MeasurementState.STARTING) {
+		if (message.getMeasurementState() == MeasurementState.STARTING_MEASUREMENT) {
 			setSelectMethodsDisable(true);
 			setSelectWorkloadDisable(true);
 			setConfigDisable(true);
 			runMeasurementButton.setDisable(true);
 			setConnectButtonDisable(true);
 		}
-		if (message.getMeasurementState() == MeasurementState.STOPPING) {
+		if (message.getMeasurementState() == MeasurementState.STOPPING_MEASUREMENT) {
 			setSelectMethodsDisable(false);
 			setSelectWorkloadDisable(false);
 			setConfigDisable(false);

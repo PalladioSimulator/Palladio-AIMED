@@ -73,6 +73,11 @@ public class FileProcessor {
 	private SourceCodeDecoratorRepository sourceCodeModel;
 	
 	/**
+	 * Contains all loaded resources
+	 */
+	private ResourceSet resourceSet;
+	
+	/**
 	 * A list of methods directly called by one method.
 	 */
 	private List<String> calledMethods;
@@ -94,12 +99,10 @@ public class FileProcessor {
 	 * @param sourceCodeDecoratorFilePath The file path to the source code decorator
 	 */
 	public void loadResources(String sourceCodeDecoratorFilePath) {
-		ResourceSet rs = new ResourceSetImpl();
-		URI sourceCodeDecoratorUri = URI.createFileURI(sourceCodeDecoratorFilePath);	
+		resourceSet = new ResourceSetImpl();
+		URI sourceCodeDecoratorUri = URI.createFileURI(sourceCodeDecoratorFilePath);
 		try {
-			sourceCodeResource = rs.getResource(sourceCodeDecoratorUri, true);
-			//TODO: Remove this, its just for debugging.
-			sourceCodeResource.setTrackingModification(true);
+			sourceCodeResource = resourceSet.getResource(sourceCodeDecoratorUri, true);
 			sourceCodeModel =  (SourceCodeDecoratorRepository) sourceCodeResource.getContents().get(0);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -202,11 +205,14 @@ public class FileProcessor {
 	/**
 	 * Store the resource back to disk.
 	 */
-	public void saveResource() {
+	public void saveResources() {
+		List<Resource> resources = resourceSet.getResources();
 		try {
-			sourceCodeResource.save(null);
-		} catch (IOException e) {
-			e.printStackTrace();
+			for (Resource resource : resources) {
+				resource.save(null);
+			}
+		} catch (IOException e1) {
+			e1.printStackTrace();
 		}
 	}
 	
@@ -214,7 +220,13 @@ public class FileProcessor {
 	 * @return Returns if the model is modified.
 	 */
 	public boolean isModified() {
-		return sourceCodeResource.isModified();
+		List<Resource> resources = resourceSet.getResources();
+		for (Resource resource : resources) {
+			if (resource.isModified()) {
+				return true;
+			}
+		}
+		return false;
 	}
 	
 	/**

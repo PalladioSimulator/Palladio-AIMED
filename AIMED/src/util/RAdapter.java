@@ -90,6 +90,7 @@ public class RAdapter {
 				throw new Exception("No resource demands to calculate.");
 			} catch (Exception e) {
 				e.printStackTrace();
+				return "";
 			}
 		}
 		if (vector.endsWith(",")) {
@@ -100,7 +101,6 @@ public class RAdapter {
 			connection.eval("result <- doublePDF(myvector)");
 			result = connection.eval("result").asString();
 			System.out.println(result);
-			System.out.println();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

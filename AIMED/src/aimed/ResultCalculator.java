@@ -81,7 +81,6 @@ public class ResultCalculator {
 	}
 	
 	private void writeResourceDemandToInternalAction(InternalAction ia, String resourceDemand) {
-		System.out.println(fileProcessor.isModified());
 		List<ParametricResourceDemand> prds = ia.getResourceDemand_Action();
 		PCMRandomVariable prv;
 		for (ParametricResourceDemand prd : prds) {
@@ -89,9 +88,6 @@ public class ResultCalculator {
 			prv.setSpecification(resourceDemand);
 			//prd.setSpecification_ParametericResourceDemand(prv);
 		}
-		//TODO: Wie weiter?
-		System.out.println(fileProcessor.isModified());
-		fileProcessor.saveResource();
 	}
 	
 	private void splitMeasurementDataOnlyTrace1Methods(String methodName, List<AbstractRecord> measurementRecords) {
