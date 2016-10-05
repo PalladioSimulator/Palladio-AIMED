@@ -1,7 +1,5 @@
 package aimed;
 
-import java.io.File;
-import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -12,7 +10,6 @@ import java.util.Map;
 import java.util.Set;
 
 import javax.measure.quantity.Duration;
-import javax.measure.quantity.Frequency;
 import javax.measure.unit.SI;
 
 import org.aim.aiminterface.entities.measurements.AbstractRecord;
@@ -22,19 +19,15 @@ import org.aim.artifacts.records.ResponseTimeRecord;
 import org.jscience.physics.amount.Amount;
 import org.lpe.common.util.LpeStringUtils;
 import org.palladiosimulator.pcm.core.PCMRandomVariable;
-import org.palladiosimulator.pcm.core.impl.PCMRandomVariableImpl;
-import org.palladiosimulator.pcm.resourcetype.ProcessingResourceType;
 import org.palladiosimulator.pcm.seff.AbstractAction;
 import org.palladiosimulator.pcm.seff.AbstractBranchTransition;
 import org.palladiosimulator.pcm.seff.BranchAction;
 import org.palladiosimulator.pcm.seff.ExternalCallAction;
 import org.palladiosimulator.pcm.seff.InternalAction;
 import org.palladiosimulator.pcm.seff.LoopAction;
-import org.palladiosimulator.pcm.seff.ResourceDemandingBehaviour;
 import org.palladiosimulator.pcm.seff.ResourceDemandingSEFF;
 import org.palladiosimulator.pcm.seff.StartAction;
 import org.palladiosimulator.pcm.seff.StopAction;
-import org.palladiosimulator.pcm.seff.impl.ResourceDemandingBehaviourImpl;
 import org.palladiosimulator.pcm.seff.seff_performance.ParametricResourceDemand;
 
 import util.CostumUnits;
@@ -86,7 +79,6 @@ public class ResultCalculator {
 		for (ParametricResourceDemand prd : prds) {
 			prv = prd.getSpecification_ParametericResourceDemand();
 			prv.setSpecification(resourceDemand);
-			//prd.setSpecification_ParametericResourceDemand(prv);
 		}
 	}
 	

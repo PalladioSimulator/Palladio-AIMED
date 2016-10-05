@@ -11,13 +11,11 @@ import java.util.Properties;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import javax.measure.quantity.Duration;
 import javax.measure.unit.UnitFormat;
 
 import org.aim.aiminterface.IAdaptiveInstrumentation;
 import org.aim.aiminterface.entities.measurements.MeasurementData;
 import org.aim.artifacts.client.JMXAdaptiveInstrumentationClient;
-import org.jscience.physics.amount.Amount;
 import org.lpe.common.config.GlobalConfiguration;
 import org.lpe.common.extension.ExtensionRegistry;
 import org.lpe.common.extension.IExtension;
@@ -314,6 +312,7 @@ public class AimedMainController extends Observable implements Observer {
 	private void createResults() {
 		if (measurementThreadPool != null) {
 			measurementThreadPool.cancel(true);
+			measurementThreadPool = null;
 		}
 		ResultCalculator resultCalc = new ResultCalculator();
 		resultCalc.setFileProcessor(fileProcessor);

@@ -48,7 +48,6 @@ import org.eclipse.gmt.modisco.java.SwitchStatement;
 import org.eclipse.gmt.modisco.java.SynchronizedStatement;
 import org.eclipse.gmt.modisco.java.ThrowStatement;
 import org.eclipse.gmt.modisco.java.TryStatement;
-import org.eclipse.gmt.modisco.java.VariableDeclaration;
 import org.eclipse.gmt.modisco.java.VariableDeclarationStatement;
 import org.eclipse.gmt.modisco.java.WhileStatement;
 import org.eclipse.gmt.modisco.java.emf.JavaPackage;

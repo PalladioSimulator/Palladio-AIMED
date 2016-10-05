@@ -11,6 +11,7 @@
 		<spotter.version>1.0.1-SNAPSHOT</spotter.version>
 		<mainClass>aimed.Main</mainClass>
 		<tycho.version>0.25.0</tycho.version>
+		<eclipse.plugin.path>C:\Users\Cel\Eclipse\eclipse-mars\plugins</eclipse.plugin.path>
 	</properties>
 	<build>
 		<sourceDirectory>src</sourceDirectory>
@@ -113,6 +114,97 @@
     		<groupId>org.rosuda.REngine</groupId>
     		<artifactId>Rserve</artifactId>
     		<version>1.8.1</version>
-		</dependency>		
+		</dependency>
+		<dependency>
+    		<groupId>org.palladiosimulator</groupId>
+    		<artifactId>pcm</artifactId>
+    		<version>4.0.0.201511051135</version>
+    		<scope>system</scope>
+    		<systemPath>${eclipse.plugin.path}\org.palladiosimulator.pcm_4.0.0.201511051135.jar</systemPath>
+		</dependency>
+		<dependency>
+    		<groupId>org.palladiosimulator</groupId>
+    		<artifactId>edp2</artifactId>
+    		<version>2.0.0.201511051045</version>
+    		<scope>system</scope>
+    		<systemPath>${eclipse.plugin.path}\org.palladiosimulator.edp2_2.0.0.201511051045.jar</systemPath>
+		</dependency>
+		<dependency>
+    		<groupId>org.eclipse.gmt.modisco</groupId>
+    		<artifactId>java</artifactId>
+    		<version>0.13.0.201505191058</version>
+    		<scope>system</scope>
+    		<systemPath>${eclipse.plugin.path}\org.eclipse.gmt.modisco.java_0.13.0.201505191058.jar</systemPath>
+		</dependency>
+		<dependency>
+    		<groupId>org.eclipse.gmt.modisco.java</groupId>
+    		<artifactId>discoverer</artifactId>
+    		<version>0.13.0.201505191058</version>
+    		<scope>system</scope>
+    		<systemPath>${eclipse.plugin.path}\org.eclipse.gmt.modisco.java.discoverer_0.13.0.201505191058.jar</systemPath>
+		</dependency>
+		<dependency>
+    		<groupId>org.eclipse.gmt.modisco.omg</groupId>
+    		<artifactId>kdm</artifactId>
+    		<version>0.13.0.201505191058</version>
+    		<scope>system</scope>
+    		<systemPath>${eclipse.plugin.path}\org.eclipse.gmt.modisco.omg.kdm_0.13.0.201505191058.jar</systemPath>
+		</dependency>
+		<dependency>
+    		<groupId>org.eclipse.emf</groupId>
+    		<artifactId>ecore</artifactId>
+    		<version>2.11.2.v20160208-0816</version>
+    		<scope>system</scope>
+    		<systemPath>${eclipse.plugin.path}\org.eclipse.emf.ecore_2.11.2.v20160208-0816.jar</systemPath>
+		</dependency>
+		<dependency>
+    		<groupId>org.eclipse.emf</groupId>
+    		<artifactId>common</artifactId>
+    		<version>2.11.1.v20160208-0816</version>
+    		<scope>system</scope>
+    		<systemPath>${eclipse.plugin.path}\org.eclipse.emf.common_2.11.1.v20160208-0816.jar</systemPath>
+		</dependency>
+		<dependency>
+    		<groupId>org.eclipse.emf</groupId>
+    		<artifactId>cdo</artifactId>
+    		<version>4.4.1.v20151007-1653</version>
+    		<scope>system</scope>
+    		<systemPath>${eclipse.plugin.path}\org.eclipse.emf.cdo_4.4.1.v20151007-1653.jar</systemPath>
+		</dependency>
+		<dependency>
+    		<groupId>org.eclipse.cdo</groupId>
+    		<artifactId>common</artifactId>
+    		<version>4.4.1.v20150911-1807</version>
+    		<scope>system</scope>
+    		<systemPath>${eclipse.plugin.path}\org.eclipse.emf.cdo.common_4.4.1.v20150911-1807.jar</systemPath>
+		</dependency>
+		<dependency>
+    		<groupId>org.somox</groupId>
+    		<artifactId>sourcecodedecorator</artifactId>
+    		<version>1.1.0.201601210735</version>
+    		<scope>system</scope>
+    		<systemPath>${eclipse.plugin.path}\org.somox.sourcecodedecorator_1.1.0.201601210735.jar</systemPath>
+		</dependency>
+		<dependency>
+    		<groupId>de.uka.ipd.sdq</groupId>
+    		<artifactId>identifier</artifactId>
+    		<version>2.1.0.201511050934</version>
+    		<scope>system</scope>
+    		<systemPath>${eclipse.plugin.path}\de.uka.ipd.sdq.identifier_2.1.0.201511050934.jar</systemPath>
+		</dependency>
+		<dependency>
+    		<groupId>de.uka.ipd.sdq</groupId>
+    		<artifactId>identifier</artifactId>
+    		<version>2.1.0.201511050934</version>
+    		<scope>system</scope>
+    		<systemPath>${eclipse.plugin.path}\de.uka.ipd.sdq.identifier_2.1.0.201511050934.jar</systemPath>
+		</dependency>
+		<dependency>
+    		<groupId>de.uka.ipd.sdq</groupId>
+    		<artifactId>stoex</artifactId>
+    		<version>2.2.0.201511050934</version>
+    		<scope>system</scope>
+    		<systemPath>${eclipse.plugin.path}\de.uka.ipd.sdq.stoex_2.2.0.201511050934.jar</systemPath>
+		</dependency>
 	</dependencies>
 </project>
