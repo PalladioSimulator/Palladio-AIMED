@@ -81,8 +81,10 @@ public class RAdapter {
 		String vector = "";
 		String result = "";
 		for (Amount<Duration> demand : resourceDemands) {
-			double test = demand.getExactValue();
-			vector += String.valueOf(demand.getExactValue()) + ",";
+			long value = demand.getExactValue();
+			if (value >= 0) {
+				vector += String.valueOf(value) + ",";				
+			}
 		}
 		if (vector.isEmpty()) {
 			try {

@@ -35,6 +35,7 @@ import org.eclipse.gmt.modisco.java.InfixExpression;
 import org.eclipse.gmt.modisco.java.InstanceofExpression;
 import org.eclipse.gmt.modisco.java.LabeledStatement;
 import org.eclipse.gmt.modisco.java.MethodInvocation;
+import org.eclipse.gmt.modisco.java.NullLiteral;
 import org.eclipse.gmt.modisco.java.NumberLiteral;
 import org.eclipse.gmt.modisco.java.ParenthesizedExpression;
 import org.eclipse.gmt.modisco.java.PostfixExpression;
@@ -42,12 +43,14 @@ import org.eclipse.gmt.modisco.java.PrefixExpression;
 import org.eclipse.gmt.modisco.java.ReturnStatement;
 import org.eclipse.gmt.modisco.java.SingleVariableAccess;
 import org.eclipse.gmt.modisco.java.Statement;
+import org.eclipse.gmt.modisco.java.StringLiteral;
 import org.eclipse.gmt.modisco.java.SuperConstructorInvocation;
 import org.eclipse.gmt.modisco.java.SwitchCase;
 import org.eclipse.gmt.modisco.java.SwitchStatement;
 import org.eclipse.gmt.modisco.java.SynchronizedStatement;
 import org.eclipse.gmt.modisco.java.ThrowStatement;
 import org.eclipse.gmt.modisco.java.TryStatement;
+import org.eclipse.gmt.modisco.java.VariableDeclarationFragment;
 import org.eclipse.gmt.modisco.java.VariableDeclarationStatement;
 import org.eclipse.gmt.modisco.java.WhileStatement;
 import org.eclipse.gmt.modisco.java.emf.JavaPackage;
@@ -364,6 +367,11 @@ public class FileProcessor {
 			return;
 		}
 		if (statement instanceof VariableDeclarationStatement) {
+			VariableDeclarationStatement vds = (VariableDeclarationStatement) statement;
+			List<VariableDeclarationFragment> vdfs= vds.getFragments();
+			for (VariableDeclarationFragment vdf : vdfs) {
+				processExpression(vdf.getInitializer());
+			}
 			return;
 		}
 		if (statement instanceof ContinueStatement) {
@@ -462,6 +470,12 @@ public class FileProcessor {
 			return;
 		}
 		if (expression instanceof ArrayAccess) {
+			return;
+		}
+		if (expression instanceof StringLiteral) {
+			return;
+		}
+		if (expression instanceof NullLiteral) {
 			return;
 		}
 		if (expression != null) {
