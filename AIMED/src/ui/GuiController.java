@@ -43,38 +43,56 @@ import messages.MeasurementStateMessage;
 import messages.ResultMessage;
 import util.Config;
 
-public class GuiController implements Initializable, Observer {	
+/**
+ * This class cointains all direct functionality of the GUI.
+ * @author Marcel Müller
+ *
+ */
+public class GuiController implements Initializable, Observer {
 	@FXML
 	private Accordion accordion;
-	
+
 	@FXML
 	private TitledPane pane1, pane2, pane3, pane4, pane5;
-	
+
 	@FXML
-	private TextField aimHostTextField, aimPortTextField, rserveHostTextField, rservePortTextField, warmupDuration, measurementDuration, resourcePathTextField;
-	
+	private TextField aimHostTextField, aimPortTextField, rserveHostTextField, rservePortTextField, warmupDuration,
+			measurementDuration, resourcePathTextField;
+
 	@FXML
 	private Label labelConnectState, labelMeasurementState;
-	
+
 	@FXML
-	private Button aimConnectButton, rserveConnectButton, runMeasurementButton, resourceSelectButton, resourceLoadButton, resourceSelectAllButton, resourceDeselectAllButton;
-	
+	private Button aimConnectButton, rserveConnectButton, runMeasurementButton, resourceSelectButton,
+			resourceLoadButton, resourceSelectAllButton, resourceDeselectAllButton;
+
 	@FXML
 	private WebView webViewResults;
-	
+
 	@FXML
 	private ComboBox<String> selectAvailableAdapterBox;
-	
+
 	@FXML
 	private VBox seffMethodsVBox, workloadAdapterConfigVBox;
-	
-	private StringProperty connectionState = new SimpleStringProperty("Connect");
+
+	/**
+	 * Contains the current connections state message.
+	 */
+	private StringProperty connectionState = new SimpleStringProperty("Please connect.");
+
+	/**
+	 * Contains the current measurement state message.
+	 */
 	private StringProperty measurementState = new SimpleStringProperty();
-	
+
 	private final static Config config = Config.getInstance();
-	
+
 	private AimedMainController aimed = AimedMainController.getInstance();
-	
+
+	/**
+	 * Initializes the GUI and adds event listeners to all required GUI
+	 * elements.
+	 */
 	@Override
 	public void initialize(URL location, ResourceBundle resources) {
 		aimed.addObserver(this);
@@ -103,9 +121,10 @@ public class GuiController implements Initializable, Observer {
 		resourceLoadButton.setOnMouseClicked(me -> {
 			onResourceLoadButtonClicked();
 		});
-		//TODO: Remove Event.fireEvent
+		// TODO: Remove Event.fireEvent
 		if (!resourcePathTextField.getText().trim().isEmpty()) {
-			Event.fireEvent(resourceLoadButton, new MouseEvent(MouseEvent.MOUSE_CLICKED, 0, 0, 0, 0, MouseButton.PRIMARY, 1, true, true, true, true, true, true, true, true, true, true, null));
+			Event.fireEvent(resourceLoadButton, new MouseEvent(MouseEvent.MOUSE_CLICKED, 0, 0, 0, 0,
+					MouseButton.PRIMARY, 1, true, true, true, true, true, true, true, true, true, true, null));
 		}
 		resourceSelectAllButton.setOnMouseClicked(me -> {
 			onSelectAllMethods(true);
@@ -115,13 +134,16 @@ public class GuiController implements Initializable, Observer {
 		});
 		loadWorkloadAdapters();
 	}
-	
+
+	/**
+	 * Loads the config to set the preconfigured parameters.
+	 */
 	private void loadConfig() {
 		if (config.containsKey("aim.host")) {
 			aimHostTextField.setText(config.getProperty("aim.host"));
 		}
 		if (config.containsKey("aim.port")) {
-			aimPortTextField.setText(config.getProperty("aim.port"));	
+			aimPortTextField.setText(config.getProperty("aim.port"));
 		}
 		if (config.containsKey("warmup.duration")) {
 			warmupDuration.setText(config.getProperty("warmup.duration"));
@@ -133,29 +155,35 @@ public class GuiController implements Initializable, Observer {
 			resourcePathTextField.setText(config.getProperty("sourcecodedecorator.path"));
 		}
 	}
-	
+
+	/**
+	 * Changes the config, if values in the GUI has been changed.
+	 */
 	private void addConfigListener() {
 		aimHostTextField.textProperty().addListener((observable, oldValue, newValue) -> {
 			config.setProperty("aim.host", newValue);
 		});
-		
+
 		aimPortTextField.textProperty().addListener((observable, oldValue, newValue) -> {
 			config.setProperty("aim.port", newValue);
 		});
-		
+
 		warmupDuration.textProperty().addListener((observable, oldValue, newValue) -> {
 			config.setProperty("warmup.duration", newValue);
 		});
-		
+
 		measurementDuration.textProperty().addListener((observable, oldValue, newValue) -> {
 			config.setProperty("measurement.duration", newValue);
 		});
-		
+
 		resourcePathTextField.textProperty().addListener((observable, oldValue, newValue) -> {
 			config.setProperty("sourcecodedecorator.path", newValue);
 		});
 	}
-	
+
+	/**
+	 * Loads the workload adapters into a selection box.
+	 */
 	private void loadWorkloadAdapters() {
 		List<IExtension> extensions = aimed.getAvailableWorkloadAdapter();
 		ObservableList<String> workloadAdapter = FXCollections.observableArrayList();
@@ -163,10 +191,14 @@ public class GuiController implements Initializable, Observer {
 			workloadAdapter.add(ext.getDisplayLabel() + " - " + ext.getName());
 		}
 		selectAvailableAdapterBox.setItems(workloadAdapter);
-		//TODO remove this line - Its for default selection of JMeter Adapter.
+		// TODO remove this line - Its for default selection of JMeter Adapter.
 		selectAvailableAdapterBox.getSelectionModel().select(0);
 	}
-	
+
+	/**
+	 * When the selection in the workload adapter box changes, the properties of
+	 * the new workload adapter are loaded.
+	 */
 	private void onLoadWorkloadAdapterClicked() {
 		workloadAdapterConfigVBox.getChildren().clear();
 		IExtension extension = aimed.getAvailableWorkloadAdapter()
@@ -178,30 +210,35 @@ public class GuiController implements Initializable, Observer {
 			text.setMaxWidth(1.7976931348623157E308);
 			text.setPromptText(cpd.getName() + " as " + cpd.getType());
 			text.setText(cpd.getDefaultValue());
-			//TODO: remove lines
+			// TODO: remove lines
 			if (cpd.getName().contains("workload.jmeter.home")) {
 				text.setText("C:/Users/Cel/Eclipse/apache-jmeter-2.13");
 			}
 			if (cpd.getName().contains("workload.jmeter.scenarioFile")) {
-				text.setText("C:/Users/Cel/Studium/Bachelor/Vorbereitung/userVariable.jmx");
-				//text.setText("C:/Users/Cel/Studium/Bachelor/Vorbereitung/CloudStoreNoSearch.jmx");
+				// text.setText("C:/Users/Cel/Studium/Bachelor/Vorbereitung/userVariable.jmx");
+				text.setText("C:/Users/Cel/Studium/Bachelor/Vorbereitung/CloudStoreNoSearch.jmx");
 			}
 			if (cpd.getName().contains("workload.jmeter.logFileFlag")) {
 				text.setText("true");
 			}
-			//TODO: until here
+			// TODO: until here
 			text.setTooltip(new Tooltip(cpd.getName() + " as " + cpd.getType()));
 			workloadAdapterConfigVBox.getChildren().add(text);
 		}
 	}
-	
+
+	/**
+	 * @return Returns the current selected workload Adapter.
+	 */
 	private AbstractWorkloadAdapter getSelectedWorkloadAdapter() {
 		AbstractWorkloadAdapter adapter = aimed.getAvailableWorkloadAdapter()
-				.get(selectAvailableAdapterBox.getSelectionModel().getSelectedIndex())
-				.createExtensionArtifact();
-		return adapter;		
+				.get(selectAvailableAdapterBox.getSelectionModel().getSelectedIndex()).createExtensionArtifact();
+		return adapter;
 	}
-	
+
+	/**
+	 * @return Returns the properties of the workload adapter.
+	 */
 	private Properties getWorkloadAdapterProperties() {
 		Properties result = new Properties();
 		ObservableList<Node> nodes = workloadAdapterConfigVBox.getChildren();
@@ -225,7 +262,7 @@ public class GuiController implements Initializable, Observer {
 	@Override
 	public void update(Observable arg0, Object arg1) {
 		if (arg0 == aimed) {
-			if (arg1 instanceof MeasurementStateMessage){
+			if (arg1 instanceof MeasurementStateMessage) {
 				onMeasurementStateMessage((MeasurementStateMessage) arg1);
 			}
 			if (arg1 instanceof ConnectionStateMessage) {
@@ -237,6 +274,9 @@ public class GuiController implements Initializable, Observer {
 		}
 	}
 
+	/**
+	 * This function handles the functionality to connect to AIM.
+	 */
 	private void onAimConnectButtonClicked() {
 		if (!aimed.isConnectedToAIM()) {
 			String host = aimHostTextField.getText().trim();
@@ -260,7 +300,10 @@ public class GuiController implements Initializable, Observer {
 			checkStartMeasurementButtonDisable();
 		}
 	}
-	
+
+	/**
+	 * This function handles the functionality to connect to the Rserve server.
+	 */
 	private void onRserveConnectButtonClicked() {
 		if (!aimed.isConnectedToRserve()) {
 			String host = rserveHostTextField.getText().trim();
@@ -284,41 +327,45 @@ public class GuiController implements Initializable, Observer {
 			checkStartMeasurementButtonDisable();
 		}
 	}
-	
+
 	private void setConnectStateText(String text) {
 		if (text.isEmpty() || text == null) {
 			return;
 		}
 		connectionState.set(text);
 	}
-	
+
 	private void setAIMHostPortDisable(boolean disabled) {
 		aimHostTextField.setDisable(disabled);
 		aimPortTextField.setDisable(disabled);
 	}
-	
+
 	private void setRserveHostPortDisable(boolean disabled) {
 		rserveHostTextField.setDisable(disabled);
 		rservePortTextField.setDisable(disabled);
 	}
-	
+
 	private void setConnectButtonDisable(boolean disabled) {
 		aimConnectButton.setDisable(disabled);
 		rserveConnectButton.setDisable(disabled);
 	}
-	
+
 	private void setAIMConnectButtonText(String text) {
-		Platform.runLater((Runnable)() -> {
+		Platform.runLater((Runnable) () -> {
 			aimConnectButton.setText(text);
 		});
 	}
-	
+
 	private void setRserveConnectButtonText(String text) {
-		Platform.runLater((Runnable)() -> {
+		Platform.runLater((Runnable) () -> {
 			rserveConnectButton.setText(text);
 		});
 	}
-	
+
+	/**
+	 * This function enables to start the measurements only if AIMED is
+	 * connected to Rserve and AIM.
+	 */
 	private void checkStartMeasurementButtonDisable() {
 		if (aimed.isConnectedToAIM() && aimed.isConnectedToRserve()) {
 			runMeasurementButton.setDisable(false);
@@ -326,21 +373,14 @@ public class GuiController implements Initializable, Observer {
 			runMeasurementButton.setDisable(true);
 		}
 	}
-	
-	private void setStartMeasurementButtonText(String text) {
-		if(text.isEmpty() || text == null) {
-			return;
-		}
-		runMeasurementButton.setText(text);
-	}
-	
+
 	private void setConfigDisable(boolean disabled) {
 		warmupDuration.setDisable(disabled);
 		measurementDuration.setDisable(disabled);
 	}
-	
+
 	private void setMeasurementStateLabelText(String text) {
-		if(text.isEmpty() || text == null) {
+		if (text.isEmpty() || text == null) {
 			return;
 		}
 		Platform.runLater(new Runnable() {
@@ -350,15 +390,15 @@ public class GuiController implements Initializable, Observer {
 			}
 		});
 	}
-	
+
 	private int getWarmupDuration() {
 		return Integer.parseInt(warmupDuration.getText().trim());
 	}
-	
+
 	private int getMeasurementDuration() {
 		return Integer.parseInt(measurementDuration.getText().trim());
 	}
-	
+
 	private void setResult(List<String> resultLines) {
 		String text = "";
 		text += "<ul>";
@@ -374,15 +414,15 @@ public class GuiController implements Initializable, Observer {
 			}
 		});
 	}
-	
+
 	private void onResultMessage(ResultMessage result) {
 		setResult(result.getResuls());
 	}
-	
+
 	private void onConnectionStateMessage(ConnectionStateMessage message) {
 		setConnectStateText(message.getMessage());
 	}
-	
+
 	private void onMeasurementStateMessage(MeasurementStateMessage message) {
 		if (message.getMeasurementState() == MeasurementState.STARTING_MEASUREMENT) {
 			setSelectMethodsDisable(true);
@@ -400,12 +440,12 @@ public class GuiController implements Initializable, Observer {
 		}
 		setMeasurementStateLabelText(message.getMessage());
 	}
-	
+
 	private void setSelectWorkloadDisable(boolean disable) {
 		selectAvailableAdapterBox.setDisable(disable);
-		workloadAdapterConfigVBox.setDisable(disable);		
+		workloadAdapterConfigVBox.setDisable(disable);
 	}
-	
+
 	private void setSelectMethodsDisable(boolean disable) {
 		resourcePathTextField.setDisable(disable);
 		resourceSelectButton.setDisable(disable);
@@ -415,17 +455,24 @@ public class GuiController implements Initializable, Observer {
 		resourceDeselectAllButton.setDisable(disable);
 	}
 
+	/**
+	 * Writes the path of the resource to the text field.
+	 */
 	private void onResourceSelectButtonClicked() {
 		FileChooser fileChooser = new FileChooser();
 		fileChooser.setTitle("Select Sourcecode Decorator file of your project.");
-		FileChooser.ExtensionFilter exFilter = new FileChooser.ExtensionFilter("Sourcecode decorator files", "(*.sourcecodedecorator)", "*.sourcecodedecorator");
+		FileChooser.ExtensionFilter exFilter = new FileChooser.ExtensionFilter("Sourcecode decorator files",
+				"(*.sourcecodedecorator)", "*.sourcecodedecorator");
 		fileChooser.getExtensionFilters().add(exFilter);
 		File selectedFile = fileChooser.showOpenDialog(resourceSelectButton.getScene().getWindow());
 		if (selectedFile != null) {
 			resourcePathTextField.setText(selectedFile.getPath());
-		}	
+		}
 	}
-	
+
+	/**
+	 * Loads the resource, which path is in the text field.
+	 */
 	private void onResourceLoadButtonClicked() {
 		seffMethodsVBox.getChildren().clear();
 		aimed.loadResources(resourcePathTextField.getText().trim());
@@ -434,31 +481,31 @@ public class GuiController implements Initializable, Observer {
 		for (String method : methods) {
 			checkBox = new CheckBox();
 			checkBox.setText(method);
-			//TODO: Remove if construct
+			// TODO: Remove if construct
 			if (method.contains("doX") || method.contains("getBook")) {
 				checkBox.setSelected(true);
 			}
 			seffMethodsVBox.getChildren().add(checkBox);
 		}
 	}
-	
+
 	private void onSelectAllMethods(boolean selectAll) {
 		ObservableList<Node> list = seffMethodsVBox.getChildren();
 		CheckBox box;
 		for (Node node : list) {
-			if (node instanceof CheckBox){
+			if (node instanceof CheckBox) {
 				box = (CheckBox) node;
 				box.setSelected(selectAll);
 			}
 		}
 	}
-	
+
 	private List<String> getSelectedMethods() {
 		List<String> result = new ArrayList<>();
 		ObservableList<Node> list = seffMethodsVBox.getChildren();
 		CheckBox box;
 		for (Node node : list) {
-			if (node instanceof CheckBox){
+			if (node instanceof CheckBox) {
 				box = (CheckBox) node;
 				if (box.isSelected()) {
 					result.add(box.getText());

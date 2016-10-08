@@ -1,5 +1,10 @@
 package messages;
 
+/**
+ * This class is the base class of the messages pushed to an oberserver.
+ * @author Marcel Müller
+ *
+ */
 public abstract class AbstractMessage {
 	private String message;
 	

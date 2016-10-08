@@ -9,6 +9,11 @@ import javax.measure.unit.SI;
 import javax.measure.unit.SystemOfUnits;
 import javax.measure.unit.Unit;
 
+/**
+ * This class adds the unit of resource demands to JScience.
+ * @author Marcel Müller
+ *
+ */
 public class CostumUnits extends SystemOfUnits {
 	private static HashSet<Unit<?>> UNITS = new HashSet();
 

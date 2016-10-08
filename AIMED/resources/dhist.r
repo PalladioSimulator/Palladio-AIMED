@@ -2,7 +2,7 @@ iqr<-function(x){ return(diff(quantile(x,c(.25,.75),na.rm=T))) }
 
 dhist<-function(x, a=5*iqr(x),
 	nbins=nclass.Sturges(x), rx = range(x,na.rm=T),
-	eps=.15, xlab = "x", plot = FALSE,lab.spikes=T)
+	eps=.15, xlab = "x", plot = FALSE, lab.spikes=T)
 {
 
 #x is the data

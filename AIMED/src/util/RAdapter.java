@@ -10,6 +10,11 @@ import org.jscience.physics.amount.Amount;
 import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RserveException;
 
+/**
+ * This class handles communication with Rserve to calculate the doublePDF string.
+ * @author Marcel Müller
+ *
+ */
 public class RAdapter {
 	RConnection connection = null;
 	boolean dhistLoaded = false;
@@ -41,11 +46,19 @@ public class RAdapter {
 		return connection.isConnected();
 	}
 	
+	/**
+	 * Loads the default file from resource folder.
+	 */
 	public void loadDefaultDhistSource() {
 		File f = new File("resources/dhist.r");
 		loadDhistSource(f.getAbsolutePath());
 	}
 	
+	/**
+	 * This function triggers Rserve to load the file that contains the functionality 
+	 * to create a histogram and the doublePDF function.
+	 * @param dhistFilePath The path of the file.
+	 */
 	public void loadDhistSource(String dhistFilePath) {
 		dhistFilePath = dhistFilePath.replaceAll("\\\\", "/");
 		try {
@@ -55,25 +68,7 @@ public class RAdapter {
 		}
 		dhistLoaded = true;
 	}
-	
-	public String doublePDF (String csvFilePath) {
-		if (!dhistLoaded) {
-			throw new MissingResourceException("Resource to run doublePDF is not laoded!", "dhist.r", "");
-		}
-		csvFilePath = csvFilePath.replaceAll("\\\\", "/");
-		String result = "";
-		try {
-			connection.eval("mydata <- read.csv(\"" + csvFilePath + "\", header = FALSE, sep = \";\", dec = \",\")");
-			connection.eval("myvector <- mydata$V1");
-			connection.eval("result <- doublePDF(myvector)");
-			result = connection.eval("result").asString();
-			System.out.println(result);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		return result;
-	}
-	
+		
 	public String doublePDF (Set<Amount<Duration>> resourceDemands) {
 		if (!dhistLoaded) {
 			throw new MissingResourceException("Resource to run doublePDF is not laoded!", "dhist.r", "");

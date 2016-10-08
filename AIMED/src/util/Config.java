@@ -10,7 +10,11 @@ import java.util.Enumeration;
 import java.util.Properties;
 import java.util.TreeSet;
 
-
+/**
+ * This class handles the configuration and its file.
+ * @author Marcel Müller
+ *
+ */
 public class Config {
 	private final static String FILE_PATH = "resources/config.properties";
 	private Properties props = new Properties();

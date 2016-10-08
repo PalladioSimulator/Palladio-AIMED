@@ -17,6 +17,11 @@ import org.spotter.exceptions.WorkloadException;
 import messages.MeasurementState;
 import messages.MeasurementStateMessage;
 
+/**
+ * This class handles the communication to AIM and triggers the workload adapter to begin the workload generation.
+ * @author Marcel Müller
+ *
+ */
 public class MeasurementRunner extends Observable implements Runnable {
 	/**
 	 * The workload adapter to generate workload.

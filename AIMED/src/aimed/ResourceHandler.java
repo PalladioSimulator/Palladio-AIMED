@@ -63,7 +63,12 @@ import org.somox.sourcecodedecorator.Seff2MethodLink;
 import org.somox.sourcecodedecorator.SourceCodeDecoratorPackage;
 import org.somox.sourcecodedecorator.SourceCodeDecoratorRepository;
 
-public class FileProcessor {
+/**
+ * This class contains the KDM and the PCM using the source code decorator.
+ * @author Marcel Müller
+ *
+ */
+public class ResourceHandler {
 	/**
 	 * The resource containing the KDM and the PCM.
 	 */
@@ -87,7 +92,7 @@ public class FileProcessor {
 	/**
 	 * Add required packages to the registry.
 	 */
-	public FileProcessor() {
+	public ResourceHandler() {
 		EPackage.Registry.INSTANCE.put(KdmPackage.eINSTANCE.getNsURI(), KdmPackage.eINSTANCE);
 		EPackage.Registry.INSTANCE.put(JavaPackage.eINSTANCE.getNsURI(), JavaPackage.eINSTANCE);
 		EPackage.Registry.INSTANCE.put(SourceCodeDecoratorPackage.eINSTANCE.getNsURI(), SourceCodeDecoratorPackage.eINSTANCE);
@@ -258,6 +263,11 @@ public class FileProcessor {
 		return calledMethods;
 	}
 	
+	/**
+	 * Processes statements using processExpression to find method invocations.
+	 * @param statement A statement from which the search recursively starts.
+	 * @throws UnsupportedDataTypeException Thrown if an unknown statement is given.
+	 */
 	private void processStatement(Statement statement) throws UnsupportedDataTypeException {
 		if (statement instanceof TryStatement) {
 			TryStatement ts = (TryStatement) statement;
@@ -382,15 +392,21 @@ public class FileProcessor {
 		}
 	}
 	
+	/**
+	 * Processes expressions given by processStatements to find method invocations.
+	 * @param expression Expression to be processed.
+	 * @throws UnsupportedDataTypeException Thrown if an unsupported expression is given.
+	 */
 	private void processExpression(Expression expression) throws UnsupportedDataTypeException {
 		if (expression instanceof MethodInvocation) {
 			MethodInvocation mi = (MethodInvocation) expression;
 			String originalCompilationUnitName = null;
+			// Detect if the found method exists in the given resource model.
 			try {
 				originalCompilationUnitName = mi.getMethod().getOriginalCompilationUnit().getName();
-			} catch (Exception e) {
-				
+			} catch (NullPointerException e) {	
 			}
+			// Adds the method only to the called method if it exists in the given resource model.
 			if (originalCompilationUnitName == null) {
 				return;
 			} else {
@@ -488,8 +504,11 @@ public class FileProcessor {
 		return compilationUnitName.substring(0, dot);
 	}
 	
+	/**
+	 * Adds found method invocations to the results to get the trace methods.
+	 * @param methodInvocation The found invocation from the workspace.
+	 */
 	private void addMethodToCalledMethods(MethodInvocation methodInvocation) {
-		//TODO: Recusive call on original compilation unit.
 		String result = removeCompilationUnitEnding(methodInvocation.getMethod().getOriginalCompilationUnit().getName());	
 		result = "*" + result + "." + methodInvocation.getMethod().getName() + "*";
 		if (!calledMethods.contains(result)) {

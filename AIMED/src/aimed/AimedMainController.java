@@ -31,7 +31,11 @@ import util.RAdapter;
 import util.Config;
 import util.CostumUnits;
 
-
+/**
+ * This class contains the main functionality and logic of AIMED. It controls the whole program.
+ * @author Marcel Müller
+ *
+ */
 public class AimedMainController extends Observable implements Observer {
 	private static AimedMainController instance = null;
 
@@ -58,7 +62,7 @@ public class AimedMainController extends Observable implements Observer {
 	/**
 	 * Instance of the class that loads the resources
 	 */
-	private FileProcessor fileProcessor;
+	private ResourceHandler fileProcessor;
 	
 	/**
 	 * Instance of the class that converts the calculated response times to a histogram
@@ -96,7 +100,7 @@ public class AimedMainController extends Observable implements Observer {
 	 * @param sourceCodeDecoratorFilePath File path to the source code decorator.
 	 */
 	public void loadResources(String sourceCodeDecoratorFilePath) {
-		fileProcessor = new FileProcessor();
+		fileProcessor = new ResourceHandler();
 		fileProcessor.loadResources(sourceCodeDecoratorFilePath);
 	}
 	

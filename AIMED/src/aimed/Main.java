@@ -32,9 +32,6 @@ public class Main extends Application {
 	}
 	
 	public static void main(String[] args) {
-		List<String> arguments = Arrays.asList(args);
-		if (!arguments.contains("-noGui")) {
-			launch(args);
-		}
+		launch(args);
 	}
 }
