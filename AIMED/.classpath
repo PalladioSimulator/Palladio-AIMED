@@ -18,7 +18,5 @@
 			<attribute name="maven.pomderived" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="C:/Users/Cel/Eclipse/R-3.3.1/library/Rserve/java/REngine.jar"/>
-	<classpathentry kind="lib" path="C:/Users/Cel/Eclipse/R-3.3.1/library/Rserve/java/Rserve.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>
