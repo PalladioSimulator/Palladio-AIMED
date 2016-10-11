@@ -342,7 +342,7 @@ public class ResultCalculator {
 		Amount<Duration> resourceDemand;
 		for (List<ResponseTimeRecord> records : measurementsList) {
 			responseTime = getResponseTimePerRecord(rdi, records);
-			resourceDemand = responseTime.to(CostumUnits.ResourceDemand).times(processingRateCpu);
+			resourceDemand = responseTime.times(processingRateCpu).to(CostumUnits.ResourceDemand);
 			resourceDemands.add(resourceDemand);
 		}
 		resourceDemandPerInternalAction.put(ia, resourceDemands);

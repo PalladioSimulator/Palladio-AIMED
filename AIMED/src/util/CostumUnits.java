@@ -19,7 +19,7 @@ public class CostumUnits extends SystemOfUnits {
 
 	private static final CostumUnits INSTANCE = new CostumUnits();
 	
-	public static final Unit<Duration> ResourceDemand = addUnit(SI.NANO(SI.SECOND).asType(Duration.class));
+	public static final Unit<Duration> ResourceDemand = addUnit(SI.SECOND.asType(Duration.class));
 
 	public static CostumUnits getInstance() {
 		return INSTANCE;

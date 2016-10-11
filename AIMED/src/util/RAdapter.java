@@ -76,7 +76,7 @@ public class RAdapter {
 		String vector = "";
 		String result = "";
 		for (Amount<Duration> demand : resourceDemands) {
-			long value = demand.getExactValue();
+			double value = demand.doubleValue(CostumUnits.ResourceDemand);
 			if (value >= 0) {
 				vector += String.valueOf(value) + ",";				
 			}
@@ -92,11 +92,12 @@ public class RAdapter {
 		if (vector.endsWith(",")) {
 			vector = vector.substring(0, vector.length() -1);
 		}
+		System.out.println("Vector: " + vector);
 		try {
 			connection.eval("myvector <- c(" + vector + ")");
 			connection.eval("result <- doublePDF(myvector)");
 			result = connection.eval("result").asString();
-			System.out.println(result);
+			System.out.println("Intervals: " + result);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
